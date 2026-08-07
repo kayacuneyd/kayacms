@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin: 5px;
+            border-radius: 3px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        .output {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 3px;
+            margin-top: 10px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>KayaCMS Admin Login Test</h1>
+
+    <div class="section">
+        <h2>Step 1: Clear Storage</h2>
+        <button onclick="clearStorage()">Clear LocalStorage</button>
+        <div id="clear-output" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 2: Login</h2>
+        <button onclick="doLogin()">Login as Admin</button>
+        <div id="login-output" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 3: Verify Token</h2>
+        <button onclick="verifyToken()">Verify Token</button>
+        <div id="verify-output" class="output"></div>
+    </div>
+
+    <div class="section">
+        <h2>Step 4: Go to Admin</h2>
+        <button onclick="goToAdmin()">Open Admin Panel</button>
+        <button onclick="goToDashboard()">Open Dashboard</button>
+    </div>
+
+    <div class="section">
+        <h2>Storage Info</h2>
+        <button onclick="showStorage()">Show Current Storage</button>
+        <div id="storage-output" class="output"></div>
+    </div>
+
+    <script>
+        function clearStorage() {
+            localStorage.clear();
+            document.getElementById('clear-output').innerHTML = '<span class="success">✓ Storage cleared</span>';
+            showStorage();
+        }
+
+        async function doLogin() {
+            const output = document.getElementById('login-output');
+            output.textContent = 'Logging in...';
+
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'admin@kayacms.local',
+                        password: 'admin123'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success && data.token) {
+                    localStorage.setItem('auth_token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    output.innerHTML = '<span class="success">✓ Login successful!</span>\n' + JSON.stringify(data, null, 2);
+                } else {
+                    output.innerHTML = '<span class="error">✗ Login failed</span>\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                output.innerHTML = '<span class="error">✗ Error: ' + error.message + '</span>';
+            }
+            showStorage();
+        }
+
+        async function verifyToken() {
+            const output = document.getElementById('verify-output');
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                output.innerHTML = '<span class="error">✗ No token found in localStorage</span>';
+                return;
+            }
+
+            output.textContent = 'Verifying token...';
+
+            try {
+                const response = await fetch('/api/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    output.innerHTML = '<span class="success">✓ Token is valid!</span>\n' + JSON.stringify(data, null, 2);
+                } else {
+                    output.innerHTML = '<span class="error">✗ Token invalid</span>\n' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                output.innerHTML = '<span class="error">✗ Error: ' + error.message + '</span>';
+            }
+        }
+
+        function goToAdmin() {
+            window.location.href = '/admin';
+        }
+
+        function goToDashboard() {
+            window.location.href = '/admin/dashboard';
+        }
+
+        function showStorage() {
+            const output = document.getElementById('storage-output');
+            const token = localStorage.getItem('auth_token');
+            const user = localStorage.getItem('user');
+
+            output.innerHTML = `
+Token: ${token ? token.substring(0, 50) + '...' : 'null'}
+User: ${user || 'null'}
+            `.trim();
+        }
+
+        // Auto-show storage on load
+        showStorage();
+    </script>
+</body>
+</html>

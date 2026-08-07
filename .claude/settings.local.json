@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/vftst/.gemini/antigravity-ide/brain/ce3e944e-1b46-4632-b4ae-9a17a57fa3e5/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
