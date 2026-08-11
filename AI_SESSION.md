@@ -1,11 +1,18 @@
 # AI Session Ledger
 
 ## Current state
-- Updated: 2026-08-11
-- Active objective: **Yeni plan FAZ 1–4** (DEVELOPMENT.md) — Faz 1 (Tema Platformu) + **Faz 2 (Production/Shared Hosting)** + **Faz 3 (Açık Kaynak)** tamamlandı (126 test / 408 assertion yeşil). Sırada Faz 4 (müşteri sistemi).
+- Updated: 2026-08-12
+- Active objective: **v1.0.0 yayınlandı + "landing" teması** — repo GitHub'a push edildi (`v1.0.0` tag), "Landing" koyu/modern tek-sayfa tema eklendi (reklam için config yönetilebilir). Toplam **132 test / 428 assertion yeşil**.
 - **Last agent/profile**: opencode (cuneyt-kaya)
 
 ## Completed work
+- **v1.0.0 Yayın + Landing Tema** (2026-08-12):
+  - **GitHub yayını**: repo `https://github.com/kayacuneyd/kayacms`'a push edildi — 3 mantıklı commit: `v2 core` (Content/User/Menu/Setting/Taxonomy/Contact modülleri + admin panel + .gitignore temizliği), `theme platform + media + production tooling` (Theme/Media/Maintenance + deploy), `open-source package` (belgeler + tests). `git tag v1.0.0` eklendi. `writable/db/seed.sql` takipten çıkarıldı; `public/assets/uploads/`, `writable/backups/`, `content-debug.*`, `phpunit-cache/`, `composer-setup.php`, `myroutes.php` `.gitignore`'a eklendi (kullanıcı medyası/sıriçi artıklar repo'dan uzak tutuldu). Commit öncesi güvenlik taraması temiz (API key, .env, sqlite, anahtar dosyalar repo+değil).
+  - **Landing teması**: `app/Views/themes/landing/` — koyu/modern tek-sayfa: `config.php` (brand_color, hero_badge/headline/subheadline/CTA, features_title/intro, `features` satır-satır `İkon|Başlık|Açıklama`, cta_title/text/button, show_articles, articles_title, footer_text/email), `partials/header.php` (sticky nav, gradient Glow hero arkaplanı, dil switcher), `partials/footer.php`, `partials/cookie_consent.php`, `partials/comments_list.php`, `index.php` (hero → features grid → blog → CTA), `single.php`, `category.php`, `search.php`, `virtual.php`. Tüm bölümler Admin → Themes → Configure ekranından yönetilebilir (mevcut `text|textarea|toggle|select` şema motoru).
+  - `modules/Theme/Database/Seeds/ThemeSeeder.php`: `landing` teması eklendi (inaktif). Dev DB re-seed edildi (themes: default aktif, minimal + landing inaktif).
+  - Test `tests/feature/LandingThemeTest.php` (6 test / 20 assertion): homepage render (dark bg `0b1020`), config-driven hero render, features satır parsing (`|` ile bölme), single render, admin config şeması görünürlüğü, `show_articles` kapalıyken blog bölümü gizli.
+  - Canlı doğrulama: `php spark serve` ile landing aktifken `/` → HTTP 200 (dark layout, hero, features, gerçek 5 makale listelendi); sonra tema default'a geri alındı.
+  - Tamamı: **132 test / 428 assertion — tamamı yeşil** (önceki 126/408 → LandingThemeTest +6/+20).
 - **Faz 3 — Açık Kaynak / Topluluk** tamamlandı:
   - **Faz 3-1 Composer paketi**: `composer.json` name→`kayacms/kayacms`, description, MIT, type project, keywords, homepage/support/authors; PSR-4'e 9 modül eklendi (`Content\`…`Maintenance\` → `modules/<Mod>/`); `composer validate` temiz, `composer update --lock` ile lock content-hash senkron; `composer dump-autoload -o` (2590 sınıf) + tam test sonrası 126/408 yeşil.
   - **Faz 3-2 Open-source metadata**: `README.md` tamamen KayaCMS'e özel yazıldı (özellikler, kurulum `<composer install>/<cp .env.example>/<migrate>/<seed>/<spark serve>`, `/admin`, deploy link, tema geliştirme, REST API, hooks, testing, license); `LICENSE` MIT — KayaCMS contributors (2026) + CI Foundation portions; `app/Config/Version.php` semver tek kaynağı (MAJOR/MINOR/PATCH/PRE_RELEASE + `::current()` → `1.0.0`); admin `layout.php` footer artık `KayaCMS v1.0.0 · CodeIgniter 4` gösterir → `DashboardTest::testDashboardLoadsWidgetsForLoggedInUser`'a `assertSee('KayaCMS v' . Version::current())` eklendi; `CHANGELOG.md` (1.0.0 + 0.0.0 maddeleri).
@@ -137,7 +144,7 @@
 ## Open items / next action
 1. Uçtan uca canlı regresyon (seed + admin panel + frontend + v2 özellikleri) bir kez daha.
 2. **Faz 4 — Müşteri Sistemi**: Faz 4-1 site şablonu + dağıtım standardı, Faz 4-2 sahiplik modeli (çok siteli örnek desen, v2 F ile bağlantılı).
-3. isteğe bağlı: `git tag v1.0.0` + push (ilk GH release; yalnızca kullanıcı isterse).
+3. Landing temasını (ve ileride benzer temaları) müşteri/ürün sahalarında yeniden kullanmak üzere tema kılavuzuna işlemek; README/CHANGELOG'u v1.1.0 (veya dev) ile senkron tutmak.
 
 ## Access notes
 - Do not store secrets here. DB: writable/db/cms.sqlite3 (dev), writable/db/test.sqlite3 (tests).

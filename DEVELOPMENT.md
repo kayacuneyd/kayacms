@@ -194,6 +194,17 @@ için kullanılacak. Faz 1 → 4 sırasıyla uygulanır.
    install/activate/config döngüsü `tests/feature/MinimalThemeTest.php` ile
    doğrulandı; `seed.php` + `ThemeSeeder` artık iki temayı kaydeder (minimal
    inaktif).
+6. **"Landing" tema** ✅ tamamlandı (2026-08-12): koyu/modern tek-sayfa
+   tanıtım teması (`app/Views/themes/landing/`). Tüm bölümler tema
+   `config.php` şemasından yönetilebilir: hero (badge/headline/subheadline/
+   CTA), özellik grid (`features` satır-satır `İkon|Başlık|Açıklama`), blog
+   bölümü (`show_articles` toggle), CTA bloğu ve footer iletişim. Koyu palet
+   (`#0b1020` zemin, brand renk `#6366f1` — config'den değiştirilebilir),
+   sticky nav, gradient glow hero. `tests/feature/LandingThemeTest.php`
+   (6 test): homepage render, config-driven hero, feature satır parsing, single
+   render, admin config şeması, `show_articles` kapatma. `ThemeSeeder` üçüncü
+   tema olarak `landing`'i kaydeder (inaktif). Bu tema "müşteri tanıtım
+   sitesi" kalıbının ilk örneğidir — sonraki projelerde kopyalanarak özelleştirilir.
 
 #### Faz 2 — Production / Shared Hosting ✅ (tamamlandı)
 1. **Web-cron** ✅ tamamlandı: `Maintenance\Libraries\WebCron` (tek kaynak) +
@@ -211,6 +222,14 @@ için kullanılacak. Faz 1 → 4 sırasıyla uygulanır.
 1. **Composer paketi** ✅ tamamlandı: `composer.json` KayaCMS'e özel (name `kayacms/kayacms`, MIT, description, keywords, homepage/support/authors); PSR-4'e tüm modüller eklendi (`Content\`, `Theme\`, … → `modules/<Mod>/`); `composer validate` + lock senkron; `composer dump-autoload -o` (2590 sınıf).
 2. **Open-source metadata** ✅ tamamlandı: `README.md` KayaCMS'e özel (özellik listesi, kurulum, deploy linki, tema geliştirme, API, hooks, test); `LICENSE` MIT (KayaCMS + CI Foundation); `app/Config/Version.php` semver tek kaynağı (`Version::current()` → `1.0.0`), admin layout footer'ında gösterilir (DashboardTest doğrular); `CHANGELOG.md` (1.0.0 release notes).
 3. **Yayın hazırlığı** ✅ tamamlandı: `composer validate` temiz; semver kaynağı hazır (`app/Config/Version.php` → v1.0.0, git tag atılabilir); git remote `origin` → `github.com/kayacuneyd/kayacms` mevcut; sürüm tag elle atılır.
+4. **v1.0.0 yayını** ✅ tamamlandı (2026-08-12): 3 mantıklı commit ile tüm v2
+   çalışması `main`'e push edildi + `git tag v1.0.0` eklendi
+   (`https://github.com/kayacuneyd/kayacms`). Öncesinde .gitignore temizliği:
+   kullanıcı medyası (`public/assets/uploads/`), yedekler (`writable/backups/`),
+   debug/phpunit artıkları ve `composer-setup.php`/`myroutes.php` repo dışına
+   alındı; `writable/db/seed.sql` takipten çıkarıldı. Güvenlik taraması:
+   `.env`, sqlite, API anahtarı, JWT sırrı repo+değil — yalnızca sırsız
+   `.env.example`.
 
 #### Faz 4 — Müşteri Sistemi
 1. Site şablonu + dağıtım standardı (her müşteri için yeniden üretilebilir kurulum).
