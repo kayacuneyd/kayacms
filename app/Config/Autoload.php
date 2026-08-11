@@ -48,6 +48,8 @@ class Autoload extends AutoloadConfig
         'Menu'     => ROOTPATH . 'modules/Menu',
         'Setting'  => ROOTPATH . 'modules/Setting',
         'Theme'    => ROOTPATH . 'modules/Theme',
+        'Contact'  => ROOTPATH . 'modules/Contact',
+        'Maintenance' => ROOTPATH . 'modules/Maintenance',
     ];
 
     /**
@@ -97,5 +99,5 @@ class Autoload extends AutoloadConfig
      *
      * @var list<string>
      */
-    public $helpers = [];
+    public $helpers = ['i18n'];
 }

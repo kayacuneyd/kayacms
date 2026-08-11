@@ -8,12 +8,16 @@ class MenuItemModel extends Model
     protected $table = 'menu_items';
     protected $primaryKey = 'id';
     protected $returnType = 'array';
-    protected $allowedFields = ['menu_id', 'title', 'url', 'content_id', 'parent_id', 'sort_order', 'target'];
+    protected $allowedFields = ['menu_id', 'title', 'url', 'content_id', 'parent_id', 'sort_order', 'target', 'locale'];
     protected $useTimestamps = true;
 
-    public function getMenuTree(int $menuId): array
+    public function getMenuTree(int $menuId, ?string $locale = null): array
     {
-        $items = $this->where('menu_id', $menuId)->orderBy('sort_order', 'ASC')->findAll();
+        $builder = $this->where('menu_id', $menuId);
+        if ($locale) {
+            $builder->where('locale', $locale);
+        }
+        $items = $builder->orderBy('sort_order', 'ASC')->findAll();
         return $this->buildTree($items);
     }
 

@@ -36,7 +36,10 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         // KayaCMS Auth Filters
         'apiAuth'       => \User\Filters\ApiAuthFilter::class,
+        'apiRateLimit'  => \User\Filters\ApiRateLimitFilter::class,
         'sessionAuth'   => \User\Filters\SessionAuthFilter::class,
+        'permission'    => \User\Filters\PermissionFilter::class,
+        'maintenance'   => \Maintenance\Filters\MaintenanceFilter::class,
     ];
 
     /**
@@ -75,6 +78,7 @@ class Filters extends BaseFilters
      */
     public array $globals = [
         'before' => [
+            'maintenance',
             // 'honeypot',
             // 'csrf',
             // 'invalidchars',

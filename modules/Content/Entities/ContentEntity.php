@@ -6,26 +6,30 @@ use CodeIgniter\Entity\Entity;
 class ContentEntity extends Entity
 {
     protected $attributes = [
-        'id'               => null,
-        'content_type'     => 'article',
-        'title'            => null,
-        'slug'             => null,
-        'body'             => null,
-        'excerpt'          => null,
-        'status'           => 'draft',
-        'author_id'        => null,
-        'featured_image'   => null,
-        'meta_title'       => null,
-        'meta_description' => null,
-        'published_at'     => null,
-        'created_at'       => null,
-        'updated_at'       => null,
-        'deleted_at'       => null,
+        'id'                   => null,
+        'locale'               => 'tr',
+        'translation_group_id' => null,
+        'content_type'         => 'article',
+        'title'                => null,
+        'slug'                 => null,
+        'body'                 => null,
+        'excerpt'              => null,
+        'custom_data'          => null,
+        'status'               => 'draft',
+        'author_id'            => null,
+        'featured_image'       => null,
+        'meta_title'           => null,
+        'meta_description'     => null,
+        'published_at'         => null,
+        'created_at'           => null,
+        'updated_at'           => null,
+        'deleted_at'           => null,
     ];
 
     protected $casts = [
-        'id'        => 'integer',
-        'author_id' => 'integer',
+        'id'          => 'integer',
+        'author_id'   => 'integer',
+        'custom_data' => '?json-array',
     ];
 
     protected $dates = [

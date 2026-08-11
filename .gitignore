@@ -91,9 +91,20 @@ vendor/
 #-------------------------
 /writable/db/*.sqlite3
 /writable/db/*.db
+/writable/db/seed.sql
 check_db.php
 demo.tailadmin.com_.png
 builds
+
+# User-generated content and runtime artifacts (never commit)
+/public/assets/uploads/*
+!/public/assets/uploads/.gitkeep
+/writable/backups/*
+!/writable/backups/.gitkeep
+/writable/content-debug.*
+/writable/phpunit-cache/
+composer-setup.php
+myroutes.php
 
 #-------------------------
 # IDE / Development Files

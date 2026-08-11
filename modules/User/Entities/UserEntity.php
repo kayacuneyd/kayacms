@@ -11,6 +11,7 @@ class UserEntity extends Entity
         'email'         => null,
         'password_hash' => null,
         'role_id'       => null,
+        'role_name'     => null,
         'status'        => 'active',
         'created_at'    => null,
         'updated_at'    => null,

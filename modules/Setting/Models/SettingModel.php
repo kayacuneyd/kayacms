@@ -1,6 +1,7 @@
 <?php
 namespace Setting\Models;
 
+use App\Libraries\QueryCache;
 use CodeIgniter\Model;
 
 class SettingModel extends Model
@@ -13,8 +14,13 @@ class SettingModel extends Model
 
     public function getSetting(string $key, $default = null)
     {
-        $setting = $this->where('key', $key)->first();
-        return $setting ? $this->castValue($setting['value'], $setting['type']) : $default;
+        return QueryCache::instance()->remember(
+            QueryCache::key('setting', $key),
+            function () use ($key, $default) {
+                $setting = $this->where('key', $key)->first();
+                return $setting ? $this->castValue($setting['value'], $setting['type']) : $default;
+            }
+        );
     }
 
     public function setSetting(string $key, $value, string $group = 'general', string $type = 'string'): bool
@@ -22,20 +28,29 @@ class SettingModel extends Model
         $existing = $this->where('key', $key)->first();
         $data = ['key' => $key, 'value' => (string)$value, 'group' => $group, 'type' => $type];
 
-        if ($existing) {
-            return $this->update($existing['id'], $data);
+        if ($existing && !empty($existing['id'])) {
+            $result = $this->update($existing['id'], $data) !== false;
+        } else {
+            $result = $this->insert($data) !== false;
         }
-        return $this->insert($data) !== false;
+
+        QueryCache::instance()->forget('setting');
+        return $result;
     }
 
     public function getByGroup(string $group): array
     {
-        $settings = $this->where('group', $group)->findAll();
-        $result = [];
-        foreach ($settings as $setting) {
-            $result[$setting['key']] = $this->castValue($setting['value'], $setting['type']);
-        }
-        return $result;
+        return QueryCache::instance()->remember(
+            QueryCache::key('settings_group', $group),
+            function () use ($group) {
+                $settings = $this->where('group', $group)->findAll();
+                $result = [];
+                foreach ($settings as $setting) {
+                    $result[$setting['key']] = $this->castValue($setting['value'], $setting['type']);
+                }
+                return $result;
+            }
+        );
     }
 
     private function castValue($value, string $type)

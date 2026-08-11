@@ -14,9 +14,11 @@ class UserModel extends BaseModel
     protected $allowedFields    = [
         'username',
         'email',
+        'password',
         'password_hash',
         'role_id',
         'status',
+        'totp_secret',
     ];
 
     protected $useTimestamps = true;

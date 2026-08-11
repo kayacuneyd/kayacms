@@ -12,6 +12,8 @@ class ContentModel extends BaseModel
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'locale',
+        'translation_group_id',
         'content_type',
         'title',
         'slug',
@@ -23,6 +25,8 @@ class ContentModel extends BaseModel
         'meta_title',
         'meta_description',
         'published_at',
+        'is_featured',
+        'custom_data',
     ];
 
     protected $useTimestamps = true;
@@ -85,11 +89,32 @@ class ContentModel extends BaseModel
                     ->groupEnd();
     }
 
-    /**
-     * Get content by slug
-     */
-    public function findBySlug(string $slug): ?ContentEntity
+    public function locale(string $locale)
     {
-        return $this->where('slug', $slug)->first();
+        return $this->where('content.locale', $locale);
+    }
+
+    /**
+     * Get translations of a content by group id
+     */
+    public function translations(?string $groupId): array
+    {
+        if (empty($groupId)) {
+            return [];
+        }
+        return $this->where('translation_group_id', $groupId)
+                    ->findAll();
+    }
+
+    /**
+     * Get content by slug and locale
+     */
+    public function findBySlug(string $slug, ?string $locale = null): ?ContentEntity
+    {
+        $builder = $this->where('slug', $slug);
+        if ($locale) {
+            $builder->where('locale', $locale);
+        }
+        return $builder->first();
     }
 }

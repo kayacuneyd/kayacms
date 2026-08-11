@@ -10,6 +10,8 @@ class TermModel extends Model
     protected $returnType       = 'array';
     protected $protectFields    = true;
     protected $allowedFields    = [
+        'locale',
+        'translation_group_id',
         'name',
         'slug',
         'taxonomy_type',
@@ -50,11 +52,46 @@ class TermModel extends Model
     }
 
     /**
-     * Get term hierarchy as tree
+     * Filter by locale
      */
-    public function getTree(string $type = 'category'): array
+    public function locale(string $locale)
     {
-        $terms = $this->byType($type)->findAll();
+        return $this->where('terms.locale', $locale);
+    }
+
+    /**
+     * Get term by slug and locale
+     */
+    public function findBySlug(string $slug, ?string $locale = null): ?array
+    {
+        $builder = $this->where('slug', $slug);
+        if ($locale) {
+            $builder->where('locale', $locale);
+        }
+        return $builder->first();
+    }
+
+    /**
+     * Get translations by group id
+     */
+    public function translations(?string $groupId): array
+    {
+        if (empty($groupId)) {
+            return [];
+        }
+        return $this->where('translation_group_id', $groupId)->findAll();
+    }
+
+    /**
+     * Get term hierarchy as tree filtered by locale
+     */
+    public function getTree(string $type = 'category', ?string $locale = null): array
+    {
+        $builder = $this->byType($type);
+        if ($locale) {
+            $builder->where('locale', $locale);
+        }
+        $terms = $builder->findAll();
         return $this->buildTree($terms);
     }
 

@@ -14,13 +14,17 @@
                 <p class="ck-text-gray-600 ck-mt-2">Admin Panel</p>
             </div>
 
-            <div id="error-message" class="ck-hidden ck-bg-red-100 ck-border ck-border-red-400 ck-text-red-700 ck-px-4 ck-py-3 ck-rounded ck-mb-4"></div>
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="ck-bg-red-100 ck-border ck-border-red-400 ck-text-red-700 ck-px-4 ck-py-3 ck-rounded ck-mb-4">
+                    <?= session()->getFlashdata('error') ?>
+                </div>
+            <?php endif; ?>
 
-            <form id="login-form" class="ck-space-y-6">
+            <form method="post" action="/admin/auth/attempt" class="ck-space-y-6">
+                <?= csrf_field() ?>
+
                 <div>
-                    <label for="email" class="ck-block ck-text-sm ck-font-medium ck-text-gray-700 ck-mb-2">
-                        Email
-                    </label>
+                    <label for="email" class="ck-block ck-text-sm ck-font-medium ck-text-gray-700 ck-mb-2">Email</label>
                     <input
                         type="email"
                         id="email"
@@ -28,13 +32,12 @@
                         required
                         class="ck-w-full ck-px-3 ck-py-2 ck-border ck-border-gray-300 ck-rounded-md focus:ck-outline-none focus:ck-ring-2 focus:ck-ring-blue-500"
                         placeholder="admin@kayacms.local"
+                        value="<?= old('email') ?>"
                     >
                 </div>
 
                 <div>
-                    <label for="password" class="ck-block ck-text-sm ck-font-medium ck-text-gray-700 ck-mb-2">
-                        Password
-                    </label>
+                    <label for="password" class="ck-block ck-text-sm ck-font-medium ck-text-gray-700 ck-mb-2">Password</label>
                     <input
                         type="password"
                         id="password"
@@ -55,73 +58,11 @@
 
             <div class="ck-mt-6 ck-text-center ck-text-sm ck-text-gray-600">
                 <p>Default credentials: admin@kayacms.local / admin123</p>
+                <p class="ck-mt-2">
+                    <a href="/admin/magic-link" class="ck-text-blue-600">Passwordless sign-in</a>
+                </p>
             </div>
         </div>
     </div>
-
-    <script>
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const errorDiv = document.getElementById('error-message');
-            errorDiv.classList.add('ck-hidden');
-
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-
-            try {
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-
-                if (data.success && data.token) {
-                    // Store token in localStorage
-                    localStorage.setItem('auth_token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-
-                    // Redirect to admin dashboard
-                    window.location.href = '/admin/dashboard';
-                } else {
-                    errorDiv.textContent = data.message || 'Login failed';
-                    errorDiv.classList.remove('ck-hidden');
-                }
-            } catch (error) {
-                errorDiv.textContent = 'Network error. Please try again.';
-                errorDiv.classList.remove('ck-hidden');
-            }
-        });
-
-        // Check if already logged in - verify token is valid
-        const existingToken = localStorage.getItem('auth_token');
-        if (existingToken) {
-            // Verify token with API before redirecting
-            fetch('/api/auth/me', {
-                headers: {
-                    'Authorization': `Bearer ${existingToken}`
-                }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.href = '/admin/dashboard';
-                } else {
-                    // Token invalid, clear it
-                    localStorage.removeItem('auth_token');
-                    localStorage.removeItem('user');
-                }
-            })
-            .catch(() => {
-                // Error verifying, clear token
-                localStorage.removeItem('auth_token');
-                localStorage.removeItem('user');
-            });
-        }
-    </script>
 </body>
 </html>

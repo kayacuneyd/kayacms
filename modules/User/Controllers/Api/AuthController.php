@@ -183,4 +183,26 @@ class AuthController extends BaseController
             'redirect' => '/admin/login'
         ]);
     }
+
+    /**
+     * Forgot password page (server-rendered).
+     */
+    public function forgot()
+    {
+        return view('user/forgot_password', ['title' => 'Forgot Password']);
+    }
+
+    /**
+     * Reset password form (server-rendered).
+     */
+    public function resetForm(string $token)
+    {
+        $resetModel = new \User\Models\PasswordResetModel();
+
+        if (! $resetModel->validToken($token)) {
+            return redirect()->to('/admin/login')->with('error', 'Invalid or expired reset token.');
+        }
+
+        return view('user/password_reset', ['token' => $token, 'title' => 'Reset Password']);
+    }
 }

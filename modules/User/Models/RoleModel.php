@@ -1,13 +1,15 @@
 <?php
+
 namespace User\Models;
 
 use CodeIgniter\Model;
+use User\Entities\RoleEntity;
 
 class RoleModel extends Model
 {
     protected $table            = 'roles';
     protected $primaryKey       = 'id';
-    protected $returnType       = 'array';
+    protected $returnType       = RoleEntity::class;
     protected $protectFields    = true;
     protected $allowedFields    = ['name', 'permissions'];
 
@@ -18,18 +20,12 @@ class RoleModel extends Model
     ];
 
     /**
-     * Get permissions as array
+     * Get role ID by name
      */
-    public function getPermissionsAttribute(?string $permissions): array
+    public function getIdByName(string $name): ?int
     {
-        return $permissions ? json_decode($permissions, true) : [];
-    }
+        $role = $this->where('name', $name)->first();
 
-    /**
-     * Set permissions from array
-     */
-    public function setPermissionsAttribute(array $permissions): string
-    {
-        return json_encode($permissions);
+        return $role ? (int) $role->id : null;
     }
 }

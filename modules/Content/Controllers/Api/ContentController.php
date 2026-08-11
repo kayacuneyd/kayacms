@@ -2,6 +2,7 @@
 namespace Content\Controllers\Api;
 
 use App\Core\BaseController;
+use App\Libraries\ContentRenderer;
 use Content\Models\ContentModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -50,13 +51,54 @@ class ContentController extends BaseController
         $pager = $builder->pager;
 
         return $this->respond([
-            'data' => $contents,
+            'data' => array_map([$this, 'decorate'], $contents),
             'pagination' => [
                 'current_page' => $pager->getCurrentPage(),
                 'total_pages'  => $pager->getPageCount(),
                 'total_items'  => $pager->getTotal(),
                 'per_page'     => $limit,
             ]
+        ]);
+    }
+
+    /**
+     * Search content by keyword (public endpoint)
+     */
+    public function search(): ResponseInterface
+    {
+        $search = $this->request->getGet('q');
+        $type   = $this->request->getGet('type');
+        $limit  = (int) ($this->request->getGet('limit') ?? 10);
+        $page   = (int) ($this->request->getGet('page') ?? 1);
+
+        $builder = $this->model;
+
+        if ($type) {
+            $builder = $builder->byType($type);
+        } else {
+            $builder = $builder->where('content_type', 'article');
+        }
+
+        $builder = $builder->published();
+
+        if ($search) {
+            $builder = $builder->search($search);
+        }
+
+        $contents = $builder->withAuthor()
+                            ->orderBy('published_at', 'DESC')
+                            ->paginate($limit, 'default', $page);
+
+        $pager = $builder->pager;
+
+        return $this->respond([
+            'data' => $contents,
+            'pagination' => [
+                'current_page' => $pager->getCurrentPage(),
+                'total_pages'  => $pager->getPageCount(),
+                'total_items'  => $pager->getTotal(),
+                'per_page'     => $limit,
+            ],
         ]);
     }
 
@@ -75,7 +117,7 @@ class ContentController extends BaseController
             return $this->failNotFound('Content not found');
         }
 
-        return $this->respond(['data' => $content]);
+        return $this->respond(['data' => $this->decorate($content)]);
     }
 
     /**
@@ -84,6 +126,10 @@ class ContentController extends BaseController
     public function create(): ResponseInterface
     {
         $data = $this->request->getJSON(true);
+
+        if (isset($data['custom_data']) && is_array($data['custom_data'])) {
+            $data['custom_data'] = json_encode($data['custom_data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
 
         // Set author from authenticated user
         if (isset($this->request->user)) {
@@ -118,6 +164,10 @@ class ContentController extends BaseController
 
         $data = $this->request->getJSON(true);
 
+        if (isset($data['custom_data']) && is_array($data['custom_data'])) {
+            $data['custom_data'] = json_encode($data['custom_data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
         // Auto-set published_at if status changes to published
         if (isset($data['status']) && $data['status'] === 'published' && empty($content->published_at)) {
             $data['published_at'] = date('Y-m-d H:i:s');
@@ -144,5 +194,21 @@ class ContentController extends BaseController
         $this->model->delete($id);
 
         return $this->respondDeleted(['message' => 'Content deleted successfully']);
+    }
+
+    /**
+     * Add rendered representations (html/text/excerpt) to a content row
+     * without discarding the raw source column.
+     */
+    protected function decorate($content): array
+    {
+        $array = ($content instanceof \Content\Entities\ContentEntity) ? $content->toArray() : (array) $content;
+        $array['render'] = [
+            'html'    => ContentRenderer::render($array['body'] ?? null, $content),
+            'text'    => ContentRenderer::text($array['body'] ?? null, $content),
+            'excerpt' => ContentRenderer::excerpt($array['body'] ?? null, $array['excerpt'] ?? null),
+        ];
+
+        return $array;
     }
 }

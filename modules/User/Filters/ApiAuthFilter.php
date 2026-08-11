@@ -12,7 +12,34 @@ class ApiAuthFilter implements FilterInterface
     {
         $authHeader = $request->getHeaderLine('Authorization');
 
-        if (!str_starts_with($authHeader, 'Bearer ')) {
+        // Personal access token via API-Key / X-API-Key header
+        $tokenHeader = $request->getHeaderLine('API-Key') ?: $request->getHeaderLine('X-API-Key');
+
+        if (! str_starts_with($authHeader, 'Bearer ')) {
+            if ($tokenHeader) {
+                $apiToken = new \User\Libraries\ApiToken();
+                $row = $apiToken->resolve($tokenHeader);
+
+                if (! $row) {
+                    return service('response')->setStatusCode(401)->setJSON([
+                        'success' => false,
+                        'message' => 'Invalid or expired API token'
+                    ]);
+                }
+
+                $apiToken->touch((int) $row['id']);
+
+                $request->user = (object) [
+                    'id'       => (int) $row['user_id'],
+                    'username' => null,
+                    'role_id'  => null,
+                    'token_id' => (int) $row['id'],
+                    'scopes'   => json_decode($row['scopes'] ?? '[]', true) ?: [],
+                ];
+
+                return $request;
+            }
+
             return service('response')->setStatusCode(401)->setJSON([
                 'success' => false,
                 'message' => 'Authorization header missing or invalid'
