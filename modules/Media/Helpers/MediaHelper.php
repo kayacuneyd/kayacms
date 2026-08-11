@@ -1,6 +1,8 @@
 <?php
 namespace Media\Helpers;
 
+use Media\Libraries\ImageProcessor;
+
 class MediaHelper
 {
     /**
@@ -132,5 +134,45 @@ class MediaHelper
     public static function isImage(string $mimeType): bool
     {
         return in_array($mimeType, self::$allowedImages);
+    }
+
+    /**
+     * Build thumbnail filename for a given filename
+     */
+    public static function getThumbnailName(string $filename): string
+    {
+        $pathInfo = pathinfo($filename);
+
+        return $pathInfo['filename'] . '_thumb.' . $pathInfo['extension'];
+    }
+
+    /**
+     * Create a thumbnail preview next to the original file
+     */
+    public static function createThumbnail(string $mainPath, string $thumbnailPath, int $size = 300): array
+    {
+        if (! self::isImage(mime_content_type($mainPath))) {
+            return ['success' => false, 'message' => 'Not an image.'];
+        }
+
+        try {
+            $ok = ImageProcessor::thumbnail($mainPath, $thumbnailPath, $size);
+
+            return $ok
+                ? ['success' => true, 'message' => 'Thumbnail created.']
+                : ['success' => false, 'message' => 'Failed to create thumbnail.'];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'Thumbnail error: ' . $e->getMessage()];
+        }
+    }
+
+    /**
+     * Detect image dimensions (returns [width, height] or [0, 0]).
+     */
+    public static function getDimensions(string $path): array
+    {
+        $size = @getimagesize($path);
+
+        return $size ? [$size[0], $size[1]] : [0, 0];
     }
 }

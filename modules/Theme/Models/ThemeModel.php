@@ -1,6 +1,7 @@
 <?php
 namespace Theme\Models;
 
+use App\Libraries\QueryCache;
 use CodeIgniter\Model;
 
 class ThemeModel extends Model
@@ -13,12 +14,18 @@ class ThemeModel extends Model
 
     public function getActive()
     {
-        return $this->where('is_active', 1)->first();
+        return QueryCache::instance()->remember(
+            QueryCache::key('theme_active'),
+            function () {
+                return $this->where('is_active', 1)->first();
+            }
+        );
     }
 
     public function activate(int $id): bool
     {
-        $this->update(null, ['is_active' => 0]); // Deactivate all
+        $this->builder()->update(['is_active' => 0]); // Deactivate all
+        QueryCache::instance()->forget('theme');
         return $this->update($id, ['is_active' => 1]); // Activate selected
     }
 }

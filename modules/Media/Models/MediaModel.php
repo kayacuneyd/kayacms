@@ -17,6 +17,11 @@ class MediaModel extends BaseModel
         'size',
         'alt_text',
         'path',
+        'file_path',
+        'thumbnail_path',
+        'folder_id',
+        'width',
+        'height',
         'uploaded_by',
     ];
 
@@ -56,5 +61,37 @@ class MediaModel extends BaseModel
                     ->orLike('original_name', $keyword)
                     ->orLike('alt_text', $keyword)
                     ->groupEnd();
+    }
+
+    /**
+     * Filter by folder (including descendants)
+     */
+    public function inFolder(?int $folderId, MediaFolderModel $folderModel = null)
+    {
+        if ($folderId === null) {
+            return $this->where('folder_id', null);
+        }
+
+        $ids = ($folderModel ?? new MediaFolderModel())->childIds($folderId);
+
+        return $this->whereIn('folder_id', $ids);
+    }
+
+    /**
+     * Apply view-level path/url attachment
+     */
+    public function decorate(array $items): array
+    {
+        foreach ($items as &$item) {
+            $path = $item['file_path'] ?? $item['path'] ?? '';
+            $item['display_path'] = $path;
+            $item['url'] = $path ? base_url($path) : '';
+            $item['is_image'] = MediaHelper::isImage($item['mime_type'] ?? '');
+            $item['formatted_size'] = isset($item['size'])
+                ? MediaHelper::formatFileSize((int) $item['size'])
+                : '';
+        }
+
+        return $items;
     }
 }
