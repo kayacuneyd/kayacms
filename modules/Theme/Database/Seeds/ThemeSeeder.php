@@ -12,6 +12,7 @@ class ThemeSeeder extends Seeder
             ['name' => 'Default', 'slug' => 'default', 'is_active' => 1],
             ['name' => 'Minimal', 'slug' => 'minimal', 'is_active' => 0],
             ['name' => 'Landing', 'slug' => 'landing', 'is_active' => 0],
+            ['name' => 'Corporate', 'slug' => 'corporate', 'is_active' => 0],
         ];
 
         foreach ($themes as $theme) {
