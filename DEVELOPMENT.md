@@ -205,6 +205,24 @@ için kullanılacak. Faz 1 → 4 sırasıyla uygulanır.
    render, admin config şeması, `show_articles` kapatma. `ThemeSeeder` üçüncü
    tema olarak `landing`'i kaydeder (inaktif). Bu tema "müşteri tanıtım
    sitesi" kalıbının ilk örneğidir — sonraki projelerde kopyalanarak özelleştirilir.
+7. **Repeater config + tema-bağımsız contact** ✅ tamamlandı (2026-08-12):
+   `ThemeConfig`'e `repeater` alan tipi eklendi (alt alan şeması + satır bazlı
+   kayıt; liste blokları — hizmet/ekip/istatistik — admin'den yönetilebilir);
+   admin config ekranı satır ekle/kaldır UI'si içerir. `/contact` tek-segment
+   URL'si `(:segment)` catch-all'e takılıyordu → contact route'ları catch-all'den
+   önce taşındı (`/admin` düzeltmesiyle aynı sınıf bug); `ContactController`
+   aktif temada contact view yoksa `default`'tan render eder. Testler:
+   `ThemeConfigTest` +repeater, `LandingThemeTest` +contact.
+8. **"Corporate" tema (K&Z Hukuk tarzı)** ✅ tamamlandı (2026-08-12):
+   `app/Views/themes/corporate/` — kzhukuk.com'u birebir yeniden üretmeyi hedefleyen
+   avukat bürosu teması. Monokrom siyah/beyaz palet + `#de252a` aksan, Playfair
+   Display (başlık) + Libre Franklin (gövde), kalın siyah çizgili fixed beyaz nav,
+   Swiper hero slider + ikon pagination, intro (dikey "K&Z"), çalışma alanları
+   slider, referanslar slider, siyah CTA bandı, blog. Tema-özel sayfalar
+   (`takim`, `hakkimizda`, `calisma-alanlarimiz`) virtual page (`handler=template`,
+   `view=themes/corporate/takim` vb.) + `theme_config` repeater'larından beslenir.
+   `tests/feature/CorporateThemeTest.php` (7 test). Bu, "müşteri sitesi yeniden
+   üretimi" kalıbının ilk örneğidir.
 
 #### Faz 2 — Production / Shared Hosting ✅ (tamamlandı)
 1. **Web-cron** ✅ tamamlandı: `Maintenance\Libraries\WebCron` (tek kaynak) +

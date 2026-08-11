@@ -2,10 +2,18 @@
 
 ## Current state
 - Updated: 2026-08-12
-- Active objective: **v1.0.0 yayınlandı + "landing" teması** — repo GitHub'a push edildi (`v1.0.0` tag), "Landing" koyu/modern tek-sayfa tema eklendi (reklam için config yönetilebilir). Toplam **132 test / 428 assertion yeşil**.
+- Active objective: **v1.0.0 yayınlandı + "landing" + "corporate" temaları** — repo GitHub'a push edildi (`v1.0.0` tag), "Landing" koyu/modern tek-sayfa tema + "Corporate" (K&Z Hukuk tarzı avukat bürosu) teması eklendi. Toplam **147 test / 480 assertion yeşil**.
 - **Last agent/profile**: opencode (cuneyt-kaya)
 
 ## Completed work
+- **Corporate Tema (K&Z Hukuk) + Repeater Config** (2026-08-12):
+  - **Repeater config tipi** (`Theme\Libraries\ThemeConfig`): `repeater` — alt alan şeması (`fields`), `cleanRepeater` (boş satır atar, boş liste kaydedebilir), `resolve` dizi döner. Admin config view'da satır ekle/kaldır UI (JS) + `_repeater_row.php` partial. Landing temasında örnek `stats` repeater (homepage istatistik kartları).
+  - **Contact tema-bağımsız**: `/contact` 404'ü düzeltildi (`/admin` bug'ının aynısı — contact route'ları `(:segment)` catch-all'den önce taşındı); `ContactController::renderTheme` aktif temada view yoksa `default`'tan render (fallback); landing + corporate kendi `contact/index.php` view'larına sahip.
+  - **Corporate teması** (`app/Views/themes/corporate/`): kzhukuk.com birebir yeniden üretim hedefli — monokrom siyah/beyaz palet (`#000`, `#4D4D4D`, `#EDEDED`) + `#de252a` aksan; **Playfair Display** başlıklar + **Libre Franklin** gövde (Gatena ticari font yerine); kalın siyah çizgili (`--border-w:20px`) fixed beyaz navbar; Swiper (CDN) hero slider + ikon pagination, intro (dikey "K&Z" yazı), çalışma alanları slider, referanslar slider, siyah CTA bandı, blog bölümü. Şablonlar: `index`, `single`, `category`, `search`, `virtual`, `takim`, `hakkimizda`, `calisma-alanlarimiz`, `contact/index`; tema-özel sayfalar virtual page (`handler=template`, view=`themes/corporate/takim` vb.) + `theme_config` repeater'larından beslenir.
+  - `ThemeSeeder`'a `corporate` eklendi; `CorporateConfigSeeder` (K&Z içerik: hero 4 slide, 6 çalışma alanı, 3 referans, ekip 3 üye, hakkımızda 4 değer, CTA, footer) + `CorporatePagesSeeder` (hakkimizda/takim/calisma-alanlarimiz/iletisim virtual pages) dev DB seed'leri.
+  - Test `tests/feature/CorporateThemeTest.php` (7 test / 27 assertion): homepage (Playfair), hero repeater render, practice+references slider render, single, config schema (repeater görünür), takim template (virtual page), contact render.
+  - Commit'ler: `dfde93b` (repeater + contact fix), `4edbba2` (corporate theme), ikisi de main'e push edildi.
+  - Tamamı: **147 test / 480 assertion — tamamı yeşil** (önceki 133/430 → repeater/contact +7, corporate +7).
 - **v1.0.0 Yayın + Landing Tema** (2026-08-12):
   - **GitHub yayını**: repo `https://github.com/kayacuneyd/kayacms`'a push edildi — 3 mantıklı commit: `v2 core` (Content/User/Menu/Setting/Taxonomy/Contact modülleri + admin panel + .gitignore temizliği), `theme platform + media + production tooling` (Theme/Media/Maintenance + deploy), `open-source package` (belgeler + tests). `git tag v1.0.0` eklendi. `writable/db/seed.sql` takipten çıkarıldı; `public/assets/uploads/`, `writable/backups/`, `content-debug.*`, `phpunit-cache/`, `composer-setup.php`, `myroutes.php` `.gitignore`'a eklendi (kullanıcı medyası/sıriçi artıklar repo'dan uzak tutuldu). Commit öncesi güvenlik taraması temiz (API key, .env, sqlite, anahtar dosyalar repo+değil).
   - **Landing teması**: `app/Views/themes/landing/` — koyu/modern tek-sayfa: `config.php` (brand_color, hero_badge/headline/subheadline/CTA, features_title/intro, `features` satır-satır `İkon|Başlık|Açıklama`, cta_title/text/button, show_articles, articles_title, footer_text/email), `partials/header.php` (sticky nav, gradient Glow hero arkaplanı, dil switcher), `partials/footer.php`, `partials/cookie_consent.php`, `partials/comments_list.php`, `index.php` (hero → features grid → blog → CTA), `single.php`, `category.php`, `search.php`, `virtual.php`. Tüm bölümler Admin → Themes → Configure ekranından yönetilebilir (mevcut `text|textarea|toggle|select` şema motoru).
@@ -133,18 +141,19 @@
 - Önceki oturumlarda Özellik 3-6 (Güvenlik, Dashboard/UX, API, İçerik İlişkileri) tamamlandı.
 
 ## Validation
-- `vendor/bin/phpunit` → OK (126 tests, 408 assertions).
+- `vendor/bin/phpunit` → OK (147 tests, 480 assertions).
 - `composer validate` → "./composer.json is valid".
-- `composer dump-autoload -o` → 2590 sınıf; `php -l` 6 değişen dosya temiz.
+- `composer dump-autoload -o` → 2590 sınıf; `php -l` değişen tema/config dosyaları temiz.
 - `php -r "require 'vendor/autoload.php'; echo \Config\Version::current();"` → `1.0.0`.
 - `php spark list | grep webcron` → `webcron:token` kayıtlı.
 - `tests/feature/DashboardTest.php` → 3 test / 11 assertion (layout footer sürüm doğrulaması dahil).
 - `tests/feature/CronTest.php` → 8 test / 30 assertion yeşil.
+- Canlı doğrulama: corporate aktifken `/`, `/content/test-post`, `/contact`, `/takim`, `/hakkimizda`, `/calisma-alanlarimiz`, `/iletisim` → tümü HTTP 200 (hero slider, blog, ekip, değerler render edildi).
 
 ## Open items / next action
 1. Uçtan uca canlı regresyon (seed + admin panel + frontend + v2 özellikleri) bir kez daha.
 2. **Faz 4 — Müşteri Sistemi**: Faz 4-1 site şablonu + dağıtım standardı, Faz 4-2 sahiplik modeli (çok siteli örnek desen, v2 F ile bağlantılı).
-3. Landing temasını (ve ileride benzer temaları) müşteri/ürün sahalarında yeniden kullanmak üzere tema kılavuzuna işlemek; README/CHANGELOG'u v1.1.0 (veya dev) ile senkron tutmak.
+3. Corporate temasını kzhukuk.com ile görsel olarak birebir doğrulamak (ekran görüntüleri karşılaştırma) + eksik bloklar (hero pagination etkileşimi, mobil menü, blog sayfalama) varsa kapatmak.
 
 ## Access notes
 - Do not store secrets here. DB: writable/db/cms.sqlite3 (dev), writable/db/test.sqlite3 (tests).
