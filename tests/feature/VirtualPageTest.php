@@ -152,6 +152,15 @@ class VirtualPageTest extends CIUnitTestCase
         $result->assertSee('Virtual Pages');
     }
 
+    public function testAdminRootNotSwallowedBySingleSegmentCatchAll(): void
+    {
+        // Regression: the virtual-page catch-all '/admin' must not capture
+        // the single-segment, otherwise /admin returns a 404.
+        $result = $this->get('/admin');
+        $result->assertOK();
+        $result->assertSee('Login');
+    }
+
     public function testAdminCreatesVirtualPage(): void
     {
         $this->login();

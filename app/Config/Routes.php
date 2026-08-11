@@ -29,13 +29,8 @@ $routes->get("($locales)/category/(:segment)", 'Home::category/$2');
 $routes->get("($locales)/tag/(:segment)", 'Home::tag/$2');
 $routes->get("($locales)/page/(:segment)", 'Home::page/$2');
 
-// Virtual pages — any remaining single-segment URL is checked against the
-// virtual_pages table before a 404 is emitted. Because specific routes above
-// (content, category, page, admin, api, feed…) are registered first, this
-// catch-all only fires for otherwise-unmatched paths.
-$routes->get('(:segment)', 'Home::virtualPage/$1');
-
-// Admin Routes
+// Admin Routes — registered before the virtual-page catch-all below so that
+// /admin and admin sub-routes are never captured by the single-segment catch-all.
 $routes->get('admin', 'Admin\\AuthController::login');
 $routes->get('admin/login', 'Admin\\AuthController::login');
 $routes->post('admin/auth/attempt', 'Admin\\AuthController::attempt');
@@ -51,3 +46,9 @@ $routes->get('admin/hooks', 'Admin\\HooksAdminController::index', ['filter' => '
 $routes->post('admin/cache/clear-page', 'Admin\\CacheAdminController::clearPage', ['filter' => 'sessionAuth']);
 $routes->post('admin/cache/clear-query', 'Admin\\CacheAdminController::clearQuery', ['filter' => 'sessionAuth']);
 $routes->post('admin/cache/clear-all', 'Admin\\CacheAdminController::clearAll', ['filter' => 'sessionAuth']);
+
+// Virtual pages — any remaining single-segment URL is checked against the
+// virtual_pages table before a 404 is emitted. Because specific routes above
+// (content, category, page, admin, api, feed…) are registered first, this
+// catch-all only fires for otherwise-unmatched paths.
+$routes->get('(:segment)', 'Home::virtualPage/$1');
