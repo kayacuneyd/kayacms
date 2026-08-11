@@ -1,69 +1,84 @@
-# CodeIgniter 4 Application Starter
+# KayaCMS
 
-## What is CodeIgniter?
+A modular, headless(-ish) CMS built on **CodeIgniter 4**. Ships with a theme
+engine, RBAC, media processing queue, REST API, webhooks, i18n-ready content,
+GDPR export and a full admin panel — deployable to shared hosting or a VPS.
 
-CodeIgniter is a PHP full-stack web framework that is light, fast, flexible and secure.
-More information can be found at the [official site](https://codeigniter.com).
+## Highlights
 
-This repository holds a composer-installable app starter.
-It has been built from the
-[development repository](https://github.com/codeigniter4/CodeIgniter4).
+- **Modular vertical slices** under `modules/`: Content, Media, User, Menu,
+  Setting, Theme, Taxonomy, Contact, Maintenance.
+- **Theme engine**: `app/Views/themes/{theme}/` with a `config.php` schema for
+  per-theme admin settings (`$theme_config`), content-type view overrides
+  (`single-{type}.php`), global header/footer script injection.
+- **Security**: JWT + session auth, RBAC, rate limiting, 2FA (TOTP), login
+  brute-force protection, security audit log, one-switch production hardening
+  (`app.securityHardening` → CSRF + InvalidChars + Honeypot + SecureHeaders).
+- **API**: REST endpoints with personal access tokens, OpenAPI spec,
+  rate limiting, webhooks.
+- **Media queue**: async thumbnail/resize jobs via CLI or web-cron.
+- **Web-cron**: token-protected HTTP scheduler for shared hosting
+  (`GET cron/run/{token}`) — no shell cron required.
+- **Other**: GDPR export, magic-link passwordless login, backups & maintenance
+  mode, CKEditor 5 (local package), multilingual content.
 
-More information about the plans for version 4 can be found in [CodeIgniter 4](https://forum.codeigniter.com/forumdisplay.php?fid=28) on the forums.
+## Requirements
 
-You can read the [user guide](https://codeigniter.com/user_guide/)
-corresponding to the latest version of the framework.
+- PHP >= 8.2 with extensions: `mbstring`, `json`, and either `pdo_sqlite` or
+  `pdo_mysql`; `gd` (thumbnails), `curl` (webhooks).
+- Composer.
 
-## Installation & updates
+## Installation
 
-`composer create-project codeigniter4/appstarter` then `composer update` whenever
-there is a new release of the framework.
+```bash
+composer install
+cp .env.example .env          # set CI_ENVIRONMENT, app.baseURL, app.jwtSecret
+php spark migrate --all
+php seed.php                  # creates default settings, users, themes, menus
+php spark serve               # or point your web server at public/
+```
 
-When updating, check the release notes to see if there are any changes you might need to apply
-to your `app` folder. The affected files can be copied or merged from
-`vendor/codeigniter4/framework/app`.
+Access the admin panel at `/admin` (default seed admin: `admin@kayacms.local`
+/ `admin123` — **change it immediately**).
 
-## Setup
+## Deploying
 
-Copy `env` to `.env` and tailor for your app, specifically the baseURL
-and any database settings.
+See [`deploy/DEPLOY.md`](deploy/DEPLOY.md): rsync checklist, `.env` setup,
+migrations/seed, permissions script (`deploy/fix-permissions.sh`), Nginx vhost
+sample (`deploy/nginx-vhost.conf`), web-cron URL, security checklist.
 
-## Important Change with index.php
+## Developing themes
 
-`index.php` is no longer in the root of the project! It has been moved inside the *public* folder,
-for better security and separation of components.
+1. Create `app/Views/themes/{slug}/` (see the bundled `default` and `minimal`
+   themes as examples).
+2. Optional `config.php` schema → editable in Admin → Themes → Configure,
+   exposed to views as `$theme_config`.
+3. Views: `index`, `single`, `single-{content_type}`, `category`, `tag`,
+   `search`, `virtual`, `partials/*`.
+4. Activate the theme in Admin → Themes.
 
-This means that you should configure your web server to "point" to your project's *public* folder, and
-not to the project root. A better practice would be to configure a virtual host to point there. A poor practice would be to point your web server to the project root and expect to enter *public/...*, as the rest of your logic and the
-framework are exposed.
+## REST API
 
-**Please** read the user guide for a better explanation of how CI4 works!
+- Base: `https://your-site/api`
+- Auth: JWT (`POST /api/auth/login`) or personal access token (`API-Key` header).
+- Interactive spec: `GET /api/openapi`.
 
-## Repository Management
+See `docs/` (or the API route file) for endpoint details.
 
-We use GitHub issues, in our main repository, to track **BUGS** and to track approved **DEVELOPMENT** work packages.
-We use our [forum](http://forum.codeigniter.com) to provide SUPPORT and to discuss
-FEATURE REQUESTS.
+## Hooks & events
 
-This repository is a "distribution" one, built by our release preparation script.
-Problems with it can be raised on our forum, or as issues in the main repository.
+KayaCMS exposes a lightweight hook layer (`App\Libraries\Hooks`) plus webhooks
+for content/user/comment lifecycle: see Admin → Hooks & Events.
 
-## Server Requirements
+## Testing
 
-PHP version 8.2 or higher is required, with the following extensions installed:
+```bash
+vendor/bin/phpunit
+```
 
-- [intl](http://php.net/manual/en/intl.requirements.php)
-- [mbstring](http://php.net/manual/en/mbstring.installation.php)
+Feature and unit tests cover the admin panel, API, theme engine, media queue,
+web-cron, GDPR, custom fields, and more (126 tests).
 
-> [!WARNING]
-> - The end of life date for PHP 7.4 was November 28, 2022.
-> - The end of life date for PHP 8.0 was November 26, 2023.
-> - The end of life date for PHP 8.1 was December 31, 2025.
-> - If you are still using below PHP 8.2, you should upgrade immediately.
-> - The end of life date for PHP 8.2 will be December 31, 2026.
+## License
 
-Additionally, make sure that the following extensions are enabled in your PHP:
-
-- json (enabled by default - don't turn it off)
-- [mysqlnd](http://php.net/manual/en/mysqlnd.install.php) if you plan to use MySQL
-- [libcurl](http://php.net/manual/en/curl.requirements.php) if you plan to use the HTTP\CURLRequest library
+MIT — see [LICENSE](LICENSE).

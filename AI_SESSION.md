@@ -1,0 +1,144 @@
+# AI Session Ledger
+
+## Current state
+- Updated: 2026-08-11
+- Active objective: **Yeni plan FAZ 1–4** (DEVELOPMENT.md) — Faz 1 (Tema Platformu) + **Faz 2 (Production/Shared Hosting)** + **Faz 3 (Açık Kaynak)** tamamlandı (126 test / 408 assertion yeşil). Sırada Faz 4 (müşteri sistemi).
+- **Last agent/profile**: opencode (cuneyt-kaya)
+
+## Completed work
+- **Faz 3 — Açık Kaynak / Topluluk** tamamlandı:
+  - **Faz 3-1 Composer paketi**: `composer.json` name→`kayacms/kayacms`, description, MIT, type project, keywords, homepage/support/authors; PSR-4'e 9 modül eklendi (`Content\`…`Maintenance\` → `modules/<Mod>/`); `composer validate` temiz, `composer update --lock` ile lock content-hash senkron; `composer dump-autoload -o` (2590 sınıf) + tam test sonrası 126/408 yeşil.
+  - **Faz 3-2 Open-source metadata**: `README.md` tamamen KayaCMS'e özel yazıldı (özellikler, kurulum `<composer install>/<cp .env.example>/<migrate>/<seed>/<spark serve>`, `/admin`, deploy link, tema geliştirme, REST API, hooks, testing, license); `LICENSE` MIT — KayaCMS contributors (2026) + CI Foundation portions; `app/Config/Version.php` semver tek kaynağı (MAJOR/MINOR/PATCH/PRE_RELEASE + `::current()` → `1.0.0`); admin `layout.php` footer artık `KayaCMS v1.0.0 · CodeIgniter 4` gösterir → `DashboardTest::testDashboardLoadsWidgetsForLoggedInUser`'a `assertSee('KayaCMS v' . Version::current())` eklendi; `CHANGELOG.md` (1.0.0 + 0.0.0 maddeleri).
+  - **Faz 3-3 Yayın hazırlığı**: `composer.json`'a `version` alanı konmadı (Packagist git tag üretir) — `composer validate` uyarısız; semver tag kaynağı hazır (`git tag v1.0.0` + push); remote `origin`=`https://github.com/kayacuneyd/kayacms.git` mevcut (main). Release notes `CHANGELOG.md`'de.
+  - Tamamı: **126 test / 408 assertion — tamamı yeşil** (Önceki toplam 407 → DashboardTest'e 1 assertion eklendi).
+- **Faz 2 — Production / Shared Hosting** tamamlandı:
+  - **Faz 2-1 Web-cron**: `Maintenance\Libraries\WebCron` (tek kaynak: `generateToken` 48 hex = 192-bit, `tasks`, `isValidToken` hash_equals, `run` → media:queue + backup:create + prune). Controller sadeleştirildi: `WebCronController::run(?string $token)` → `GET cron/run/(:segment)` (namespace açık). **Boş token = endpoint kapalı (403)** → fresh install güvenli; token Admin → "Generate New Token" veya CLI üretir. `cron_token`/`cron_tasks` ayarları (seed + SettingSeeder). Admin kartı (index view'daki 4. kart): token göster/gizle, görev düzenle, Generate New Token, `wget` örnek URL. CLI `php spark webcron:token [--generate]`. Admin route'ları: `POST admin/maintenance/cron` + `POST admin/maintenance/cron/token`.
+  - **Faz 2-2 Deploy paketi**: `.env.example` (sır yok), `deploy/nginx-vhost.conf` (80→443 301, `public/` root, php-fpm, `writable|.env` deny), `deploy/fix-permissions.sh` (chown/chmod 775 writable + uploads, `WEB_USER` env), `deploy/DEPLOY.md` (rsync → env → migrate/seed → izinler → nginx/apache → web-cron URL → güvenlik checklist → OPCache).
+  - **Faz 2-3 Production güvenlik toggles**: `app/Config/Filters.php` constructor — `app.securityHardening` env switch; açıkken `globals.before` csrf+invalidchars+honeypot, `after` secureheaders; production'da varsayılan açık. `SecurityHardeningTest` (2 test / 6 assertion).
+  - Düzeltilen: `BackupManager` dosya adı saniye çakışması ("output file already exists") → stamp'e `-{random}` eklendi (web-cron saniyelerde çift tetiklenebilir); `WebCronController::run(string $token = null)` → `?string` (PHP 8.4 implicit-nullable deprecation); CLI opt `--generate` son parametredeyken değeri null → `isset` yerine `array_key_exists`.
+  - Web-cron JSON yanıtları test ortamında CI4 tarafından plain HTML'e sarılıyor (ob_ davranışı) → `CronTest` `ApiTest`'teki `extractJson()` kalıbını kullanıyor (8 test / 30 assertion: 403'ler, backup/media queue, her iki görev, admin token üretme/update/giriş kısıtı, invalid char reddi, index kart).
+  - Tamamı: **126 test / 407 assertion — tamamı yeşil**.
+- **Faz 1-5: Örnek "minimal" tema** tamamlandı:
+  - `app/Views/themes/minimal/` ikinci tema olarak eklendi: `config.php` (kendi şeması: `container_width` narrow|full, `show_author`, `footer_text`), `partials/header.php` (çıplak HTML/CSS, Georgia serif tek sütun; menü, dil switcher, breadcrumbs, fallback-notice, `header_scripts` inject), `partials/footer.php` (`footer_text` + `footer_scripts` + cookie_consent include), `partials/cookie_consent.php` (minimal variant, aynı `ck_consent` cookie), `partials/comments_list.php`, `index.php`, `single.php`, `category.php`, `search.php`, `virtual.php`. Default'tan farklı görünüm (post-list, Georgia, siyah/beyaz).
+  - `seed.php` + `modules/Theme/Database/Seeds/ThemeSeeder.php`: artık iki tema kaydediyor (`default` aktif, `minimal` inaktif). Dev DB re-seed edildi (themes: id 1 default, id 6 minimal).
+  - Test `tests/feature/MinimalThemeTest.php` (6 test / 18 assertion): homepage render (Georgia font), single render, default'a geri dönüş (deactivate), config resolve (default'lar), admin config şeması görünür (`Container Width`), config save persist → frontend render (`1200px` + footer text).
+  - **Test izolasyonu düzeltmesi:** `CollectionRelationTest::testFrontendShowsFeaturedAndRelated` default tema render'ına ("Featured Content") dayanıyordu ama themes tablosunu kurmuyordu → MinimalThemeTest minimal'ı aktif bırakınca kırıldı. Test artık kendi default temasını kurup aktif ediyor.
+  - Tamamı: **118 test / 377 assertion — tamamı yeşil**.
+- **Faz 1-4: CKEditor paketleme** tamamlandı:
+  - CDN bağımlılığı kaldırıldı: classic build 41.3.1 `https://cdn.ckeditor.com/ckeditor5/41.3.1/classic/ckeditor.js` → `public/assets/vendor/ckeditor/ckeditor.js` (1.3MB) olarak yerel kopyaya indirildi.
+  - `app/Views/admin/content/form.php`: `<script src="...cdn.ckeditor.com...">` → `<script src="<?= base_url('assets/vendor/ckeditor/ckeditor.js') ?>">`.
+  - Test `tests/feature/CkeditorPackagingTest.php` (3 test / 6 assertion): admin content form yerel asset'i referanslar, `cdn.ckeditor.com` body'de yok, yerel bundle dosyası mevcut + >100KB.
+  - Not: `app/Views/admin/menus/form.php:111` SortableJS hâlâ CDN'den (`cdn.jsdelivr.net`) yükleniyor — Faz 1-4 kapsamı dışında bırakıldı, ileride değerlendirilebilir.
+  - **Test ortamı düzeltmesi:** `tests/feature/MediaQueueTest.php` `/tmp/opencode/test-image.jpg` fixture'ını bekliyordu ve dosya yoktu (2 error) → örnek JPEG kopyalanarak yerine kondu.
+  - Tamamı: **112 test / 359 assertion — tamamı yeşil**.
+- **Faz 1-3: Global header/footer script ayarları** tamamlandı:
+  - `header_scripts` + `footer_scripts` ayarları (`general` grubu, `textarea` tipi) — `seed.php` + `SettingSeeder`'a eklendi; dev DB re-seed edildi.
+  - `app/Views/admin/settings/form.php`: `textarea` tipindeki ayarlar için textarea render (+ açıklama metni).
+  - Default tema layout: header.php `</head>` öncesine `$settings['header_scripts']`, footer.php `</body>` öncesine `$settings['footer_scripts']` (verbatim, esc'siz — ayar sahibi yöneticidir).
+  - **Latent bug düzeltmesi:** `seed.php` satır 15 — editor rolü JSON'u PHP double-quote string içinde çift tırnaklar `\"` escape edilmeden yazılmıştı → parse error; düzeltildi (`php seed.php` tekrar çalışır).
+  - Test `tests/feature/ScriptsInjectionTest.php` (4 test / 10 assertion): header meta render, footer script render, admin update persist, escape hayatta kalma.
+- **Faz 1-2: Content-type view override** tamamlandı:
+  - `Home::resolveSingleView($contentType)`: `themes/{theme}/single-{content_type}.php` varsa kullanır, yoksa `single.php`'ye düşer; content_type regex sanitize edilir. `show()` ve `page()` artık bu yöntemi kullanıyor.
+  - Örnek tema: `app/Views/themes/default/single-review.php` — "review" tipi için üstte Review rozeti + `$item->custom_data['rating']` gösterimi.
+  - Test `tests/feature/ContentTypeOverrideTest.php` (5 test / 16 assertion): review override, article fallback, page fallback, tanımsız tip fallback, custom_data rating.
+- **Faz 1-1: Theme config sistemi** tamamlandı:
+  - `Theme\Libraries\ThemeConfig` (`modules/Theme/Libraries/ThemeConfig.php`): tema `config.php` şema dosyasından field tanımları okur (key/label/type/default/options; tipler text/toggle/textarea/select). `resolve()` kayıtlı değerleri default'larla birleştirir, `save()` yalnızca şemada tanımlı anahtarları JSON olarak `themes.config` sütununa yazar (toggle normalize 0|1), `saved()` decode, `schema()` güvenli slug + dosya varlığı kontrolü. Kayıt sonrası `QueryCache::forget('theme')`.
+  - `app/Views/themes/default/config.php`: örnek şema (brand_color, show_search, show_featured, footer_text, header_layout).
+  - `ThemeAdminController::config/saveConfig` + rotalar `GET/POST admin/themes/config/(:num)`; view `app/Views/admin/themes/config.php` (dinamik form, şema yoksa yönlendirme notu); themes index'e "Configure" butonu.
+  - `Home::resolveTheme()` artık aktif temanın config'ini çözer → `layoutData()` tüm view'lara `$theme_config` verir. Default tema partial'ları kullanır: header (brand_color → CSS değişkeni, header_layout → header-full class'ı), index (show_search/search bar, show_featured), footer (footer_text).
+  - Test `tests/feature/ThemeConfigTest.php` (7 test / 28 assertion): şema okuma, bilinmeyen tema → boş, resolve default merge, save yalnızca bilinen anahtarlar (evil_key reddedilir, toggle normalize), admin form render, admin save persist, frontend `$theme_config` render (footer text + brand color).
+  - Tamamı: **100 test / 327 assertion — tamamı yeşil**.
+  - **Faz 1-1 + 1-2 + 1-3 sonrası tamamı: 109 test / 353 assertion — tamamı yeşil.**
+- v2 E maddesi (GDPR Export + Cookie Consent + Virtual Pages) tamamlandı:
+  - **İzinler** (`User\Libraries\Permission::definitions`): `gdpr.view`/`gdpr.export` + `virtual_pages.view`/`virtual_pages.manage`.
+  - `User\Libraries\GdprExport`: `collect($userId, $email)` — subject(profile, password_hash+totp_secret hariç), content(author_id), comments(author_email), media(uploaded_by), notifications(recipient_id), activity_logs(user_id), security_logs(user_id), api_tokens(user_id, token_hash redact), magic_links(user_id, token redact), password_resets(email, token redact), login_attempts(email), contact_submissions(json data içinde email eşleşmesi). `toJson` (pretty, UNESCAPED), `toCsv` (flatten: her değer `path,value`, listeler `content.1.title` gibi indekslenir). Sırlar asla dışa çıkmaz.
+  - `User\Controllers\Admin\GdprAdminController`: `index` (email/username araması), `export` (`admin/gdpr/export/{id}?format=json|csv` → `response` attachment header + no-store; activity log `exported`), `deleteData` (`POST admin/gdpr/delete-data/{id}` — GDPR right-to-erasure, **hard delete** `builder()->where('id')->delete()`, kendi hesabını silemez). Rotalar User modülüne; view `app/Views/admin/gdpr/index.php`; sidebar "GDPR Export". **Not:** CI4 Model `forceDelete()` yok → hard delete için builder kullanılır.
+  - **Cookie onay banner (E2):** ayarlar `cookie_consent_enabled` (privacy, bool) + `privacy_policy_url` (privacy, string) — seed.php + SettingSeeder'a eklendi. `app/Views/themes/default/partials/cookie_consent.php` (fixed bottom banner, Accept/Decline → `ck_consent` cookie 365 gün, JS) theme `footer.php`'ye include edildi. `Home::__construct` artık `general` grubu + `privacy` grubunu birleştiriyor. **Latent bug:** SettingModel `getByGroup` boolean cast → `true`/`false` gerçek boolean; şablonda string karşılaştırma `'true'` kullanılmıştı → `! empty(...)` ile düzeltildi.
+  - **Virtual Pages (E3):**
+    - Migration `modules/Content/Database/Migrations/2026-08-11-000001_CreateVirtualPagesTable.php` → `virtual_pages` (slug unique, title, handler [template|markdown|redirect], payload TEXT json, status; timestamps). Dev+test DB'lerine uygulandı (`php spark migrate --all`).
+    - `Content\Models\VirtualPageModel` (`useSoftDeletes=false`; `findBySlug` sadece active, `payloadArray` decode, validation slug/title/handler/status).
+    - `Content\Libraries\VirtualPage`: `dispatch` (bulunamazsa PageNotFoundException), `validatePayload` (handler'a göre zorunlu alan), `renderMarkdown` (hafif parser: ATX başlıklar, paragraf, bold/italic, inline code, fenced code blocks, unordered list, link; çıktı ContentRenderer::sanitize'den geçer).
+    - `App\Controllers\Home::virtualPage`: `resolveVirtualPage` (slug → dispatch array); `redirect` handler → redirect; `template` handler + `themes/...` view → o view; diğer durumlar → markdown veya body render `themes/{theme}/virtual` view (`app/Views/themes/default/virtual.php`). Session cache devre dışı iken yeniden render.
+    - Route: `app/Config/Routes.php` sonuna **catch-all** `$routes->get('(:segment)', 'Home::virtualPage/$1')` — spesifik rotalar (content/category/page/admin/api/feed) önce kayıtlı olduğu için yalnızca eşleşmeyen path'ler virtual_page'e düşer; bulunamazsa 404.
+    - `Content\Controllers\Admin\VirtualPageAdminController`: index/create/edit/store/update/delete; `save()` payload'ı handler'a göre validate eder. Rotalar `admin/virtual-pages[/create|/store|/edit/{id}|/update/{id}|/delete/{id}]`; view'lar `app/Views/admin/virtual_pages/index.php` + `form.php` (JS handler değişiminde alanları gösterip gizler); sidebar "Virtual Pages".
+  - Testler:
+    - `tests/feature/GdprTest.php` (8 test / 23 assertion): login gerekli, sayfa render, collect (subject+content+media+comments, secret yok), JSON/CV sırrı içermez, export endpoint attachment (json+csv), erase (ikinci kullanıcı ile hard delete).
+    - `tests/feature/CookieConsentTest.php` (3 test / 9 assertion): enabled→banner görünür (Accept/Decline butonları), disabled→gizli, policy link render.
+    - `tests/feature/VirtualPageTest.php` (11 test / 33 assertion): model findBySlug active/inactive, markdown render, validatePayload, frontend markdown sayfa, unknown slug → PageNotFoundException (library.dispatch ile), redirect handler, inactive 404, admin index/create/validation/edit.
+    - **Regresyon düzeltmesi:** ContentRendererTest `assertStringNotContainsString('<script')` tüm sayfada idi — cookie banner `<script>` eklediği için artikül içeriğe (`div.content`) sınırlandırıldı.
+  - Tamamı: **93 test / 299 assertion — tamamı yeşil.**
+- v2 D maddesi (Magic Link / şifresiz e-posta girişi) tamamlandı:
+  - Migration `modules/User/Database/Migrations/2026-08-10-000001_CreateMagicLinksTable.php` → `magic_links` (user_id, token, expires_at, used_at, created_at, updated_at; indeksler user_id/token/expires_at). Dev+test DB'lerine uygulandı. **Latent bug düzeltmesi:** ilk migration `updated_at` içermiyordu ama MagicLinkModel timestamps kullandığı için insert patlıyordu → `updated_at` eklendi, dev DB rollback+re-migrate.
+  - `User\Models\MagicLinkModel`: `validToken` (token + used_at null + expires_at >= now), `invalidateForUser` (kullanıcının bekleyen token'larını used_at işaretler).
+  - `User\Libraries\MagicLink`: `issue` (önceki linkleri invalidate eder → her zaman son link kazanır; tek kullanımlık), `linkFor` → `admin/magic-link/{token}`, `consume` (validToken → UserEntity döner, used_at işaretlenir), `isEnabled` (`magic_link_enabled`, varsayılan true).
+  - `App\Controllers\Admin\AuthController`: `magicLinkForm` (GET, anahtar ayar kapalıysa login'e döner), `magicLinkRequest` (POST; valid_email + LoginThrottle isBlocked + **anti-enumiration** — var/yok kullanıcı aynı yanıt; Mailer::sendView ile `emails/magic_link` gönderir), `magicLinkConsume` (token → kullanıcı null/aktif değilse login'e; TOTP challenge; session user_id/username/role_id/logged_in; SecurityLog::info magic_link_sent/magic_link_login + ActivityLog auth login).
+  - Rotalar `app/Config/Routes.php`: `GET/POST admin/magic-link`, `GET admin/magic-link/(:segment)` (consume).
+  - View'lar: `app/Views/admin/magic_link.php` (form, back-link), `app/Views/emails/magic_link.php` (e-posta şablonu), `app/Views/admin/login.php`'ye "Passwordless sign-in" bağlantısı.
+  - Ayar: `magic_link_enabled` boolean — `modules/Setting/Database/Seeds/SettingSeeder.php` + `seed.php`'ye eklendi.
+  - **Test DB yönetimi notu:** toggle testi `magic_link_enabled=false`'yi paylaşılan `test.sqlite3`'e yazıyor; sonrasında diğer testler bozulmaz çünkü MagicLinkTest::setUp her testte bu ayarı true'ya çekiyor. Diğer testler settings tablosunu kullanmıyor.
+  - Test `tests/feature/MagicLinkTest.php` (7 test / 26 assertion): form render, link oluşturma+süre/used_at null, anti-enumiration (açıklama yok), consume login+tek kullanım, geçersiz token red, issue revoke (eski linkler invalid), ayar kapatınca form reddi.
+  - Tamamı: 71 test / 234 assertion — tamamı yeşil.
+- v2 D2 maddesi (Async Media Queue) tamamlandı:
+  - Migration'lar: `modules/Media/Database/Migrations/2026-08-10-000001_CreateMediaJobsTable.php` (`media_jobs`: type, media_id, payload, status pending/processing/done/failed, attempts, max_attempts, available_at, error, result, timestamps; indeksler) + `2026-08-10-000002_AddFilePathToMedia.php` (`media.file_path` VARCHAR nullable — **latent bug düzeltmesi**: model/controller sütunu kullanıyordu ama hiçbir migration'da yoktu; test "table media has no column named file_path" ile yakalandı). Dev+test DB'lerine uygulandı.
+  - `Media\Libraries\MediaQueue`: `enqueue` (heavy delay = available_at), `claim` (worker-lock: select pending → WHERE id+status='pending' UPDATE, etkilenen satır 0 ise rakip worker almış demektir, atlanır), `work`/`process`, `markDone`, `markFailed` (exponential backoff `30 * 2^(attempts-1)`; `attempts >= max_attempts` ise kalıcı failed), `retry`, `stats`, `recent`, `countPendingFor`.
+  - Job tipleri: `thumbnail` (`MediaHelper::createThumbnail` → `media.thumbnail_path`), `resize` (`ImageProcessor::resize` → width/height + thumbnail'i yeniden enqueue). `process` bilinmeyen tipte RuntimeException.
+  - CLI: `modules/Media/Commands/MediaQueueCommand.php` — `media:queue [--limit=N] [--type=TYPE]`; failed işlerde `SecurityLog::warning('media.queue.failed')`; tek çalıştırma sonrası tekrar `work()` (doyana kadar tüketmez, gerçek queue worker mantığı test edilebilir kalır).
+  - Admin: `MediaAdminController::store()` thumbnail'i satır içi üretmeyi bıraktı → `MediaQueue::enqueue('thumbnail', $id)`; yeni `queue()`/`runQueue()`/`retryJob()`; rotalar `GET admin/media/queue`, `POST admin/media/queue/run`, `POST admin/media/queue/retry/(:num)`; view `app/Views/admin/media/queue.php` (stat kartları done/failed/pending + Run Queue Now + job tablosu + retry) + layout sidebar "Media Queue".
+  - Düzeltilen latent hatalar: admin `store()` `MediaHelper::validateFile()` dönüşünü `['success']` olarak okuyordu ama metod flat error listesi dönüyor → boşluk kontrolüne çevrildi (API doğruydu).
+  - Test `tests/feature/MediaQueueTest.php` (7 test / 30 assertion): enqueue pending, claim->processing + worker lock, thumbnail job tamamlama (done + thumbnail_path dosyası), retry backoff (max_attempts sonrası failed; test backoff penceresini `available_at` geçmişe çekerek simüle eder), retry requeue, upload store → thumbnail job enqueue, admin queue sayfası (login gerekli + render).
+  - CI4 feature testlerinde dosya yükleme zorluğu: `$_FILES` superglobal + `is_uploaded_file()` CLI'da hep false → test `FeatureTestTrait::setupRequest`'i override edip mock `FakeQTUploadedFile` (isValid true, move=copy) + `FakeQTFileCollection` enjekte ediyor (`setPrivateProperty` ile request 'files').
+  - **OAuth çıkarıldı** (kullanıcı kararı): dağıtılabilir CMS'te kurulum başına Google/GitHub kayıt+domain bağımlılığı değersiz. Magic Link / şifresiz e-posta girişi "sonrakinde olsun" dendi → D'nin yeni kapsamı.
+  - Tamamı: 64 test / 208 assertion — tamamı yeşil.
+- v2 C maddesi (Custom Sections & Fields) tamamlandı:
+  - Migration'lar: `modules/Content/Database/Migrations/2026-08-10-000001_AddCustomDataToContent.php` (`content.custom_data` TEXT nullable) + `2026-08-10-000002_CreateContentTypeSchemasTable.php` (`content_type_schemas`; `php spark migrate --all` ile dev+test DB'lerine uygulandı).
+  - `Content\Models\ContentTypeSchemaModel`: `getSchema`/`setSchema` (upsert)/`allWithTypes` (satıra decode `fields`).
+  - `Content\Libraries\CustomFields`: `schemaFor`, `collect` (POST `custom[...]` → normalize: checkbox/toggle 0|1, number float, string), `validate` (required/email/url/select), `merge` (default+stored). Tipler: text/textarea/number/email/url/select/checkbox/date/datetime/toggle.
+  - `ContentEntity` → `custom_data` cast **`?json-array`** (NOT `?array` — ArrayCast serialize kullanıyor, JSON store'la uyumsuz); `ContentModel::allowedFields`'a `custom_data`.
+  - `ContentAdminController`: `prepareContentData()` custom_data'yı json_encode ile ekler; `collectCustomData()` + `validateCustomFields()` (string veya array); `allSchemasJson()` view'a şema; create/edit/createTranslation → `customValues` + `schemas`.
+  - API: `ContentController::create/update` `custom_data` array'i ise json_encode; `decorate()`/`toArray()` → custom_data decode edilmiş dizi olarak yanıtta.
+  - Admin: `SchemaAdminController` (index/edit/store/delete) + rotalar `admin/content/schemas[/edit|/store|/delete/{type}]` + layout sidebar "Custom Fields" + view'lar `admin/content/schemas/index.php` + `edit.php` (dinamik alan editörü, JS satır ekle/kaldır, field types).
+  - `app/Views/admin/content/form.php`: `#custom-content-type-select` değişikliğinde JS ile dinamik custom field render (`customSchemas` + `customValues`); `custom[field]` input adları.
+  - Düzeltilen latent hatalar: `Webhook::dispatch` static olmayan metoda static çağrıydı → `(new Webhook())->dispatch()`; `ContentAdminController::create()` `$targetLocale` göndermiyordu (form view kullanıyor).
+  - Test `tests/feature/CustomFieldsTest.php` (9 test / 43 assertion): schema upsert/read, collect normalize, validate, admin store, schema admin sayfaları render, content store custom_data persist, invalid reddetme, update persist, API custom_data decode.
+  - Tamamı: 57 test / 178 assertion — tamamı yeşil.
+- v2 B maddesi (Markdown + Content Representations) tamamlandı:
+  - `app/Libraries/ContentRenderer.php`: tek kaynaktan çoklu temsil — `render()` (sanitize + `content.render.html` filtresi), `text()` (`content.render.text`), `excerpt()` (kelime sınırında kesim, `content.render.excerpt`), `sanitize()` (DOM allowlist: script/style/iframe/event attr/unsafe URL temizleme).
+  - Entegrasyon: `Home::feed()` description → `ContentRenderer::excerpt`; theme view'ları (`single.php` body render + tüm excerpt'ler `index/search/category/single-related`) → renderer; API `ContentController::show/index` → her kayda `render` (html/text/excerpt) alanı ekleyen `decorate()`.
+  - Admin: `ContentAdminController::preview()` (AJAX, `admin/content/preview` POST) + `form.php` "Preview Rendered HTML" butonu (body → sanitize → canlı önizleme) + renderer note.
+  - Test `tests/feature/ContentRendererTest.php` (7 test / 24 assertion): sanitize script/unsafe URL/event handler, text decode, excerpt öncelik+kelime kesimi, single page sanitize doğrulama, excerpt temiz, API `render`, admin preview endpoint.
+  - Tamamı: 48 test / 135 assertion — tamamı yeşil.
+- v2 A maddesi (İç Hook Sistemi) tamamlandı:
+  - `app/Libraries/Hooks.php`: statik filtre+aksiyon katmanı — `addFilter/applyFilters/addAction/doAction/hasFilter/hasAction/registered/reset`; priority düşük önce (usort, stabil), varsayılan 10.
+  - Test `tests/feature/HooksTest.php` (5 test / 11 assertion): filter dönüşümü, priority sırası, action argümanları, kayıtsız hook no-op, has/registered yardımcıları.
+  - Entegrasyonlar: `ContentAdminController::store/update/delete` → `content.created/updated/deleted`; `CommentController::store` → `comment.created`; `UserAdminController::store/update/delete` → `user.created/updated/deleted`; `Webhook::dispatch` artık her webhook event'ini iç hook olarak da ateşliyor.
+  - Admin görüntüleme: `app/Controllers/Admin/HooksAdminController.php` + `app/Views/admin/hooks/index.php` + `admin/hooks` rotası + layout sidebar "Hooks & Events" linki — dokümante event listesi + request'te kayıtlı hook'lar (`Hooks::registered()`).
+  - Tamamı: 41 test / 111 assertion — tamamı yeşil.
+- Önceki oturum: Özellik 7 (Yedekleme & Bakım) dahil tüm v1 yol haritası tamamlandı.
+  - Yeni `Maintenance` modülü (Autoload psr4'e `'Maintenance' => ROOTPATH . 'modules/Maintenance'`).
+  - Migration `modules/Maintenance/Database/Migrations/2026-08-09-000001_CreateBackupsTable.php` → `backups` tablosu (cms + test DB'lerine `php spark migrate --all` ile uygulandı).
+  - `Maintenance\Libraries\BackupManager`: SQLite `VACUUM INTO` ile `writable/backups/backup-{stamp}.sqlite` snapshot; all/get/delete/prune (retention N).
+  - CLI komutu `php spark backup:create [--keep=N]` (cron'da planlanabilir) — `SecurityLog::info('backup.created')` kaydı; SettingModel `backup_keep_count` okur.
+  - Bakım modu: `Maintenance\Filters\MaintenanceFilter` + `maintenance` alias + `app/Config/Filters.php` globals `before`; `maintenance_enabled` ayarı açıksa public istekler 503 + `app/Views/maintenance.php`, `/admin/*` beyaz listede (admin kapatabilir). Not: `getPath()` önünde `/` olmayabilir → `'/' . ltrim(...)` normalize edildi.
+  - Admin: `admin/maintenance` rotaları (index/download/backup/delete/toggle/settings) + `MaintenanceController` + `app/Views/admin/maintenance/index.php` + layout sidebar linki + perm'ler `maintenance.view/backup/toggle`; `maintenance.toggle` → `SecurityLog::warning`.
+  - `SecurityLog` CLI'da `CLIRequest::getUserAgent()` hatası düzeltildi (CLI'da 'cli' değeri, `$ipAddress` değişkeni).
+  - Test `tests/feature/BackupMaintenanceTest.php` (4 test / 17 assertion): login gerekli, backup oluşturma, bakım modu public 503 + admin erişimi, toggle kaydı.
+  - Tamamı: 36 test / 100 assertion — tamamı yeşil.
+- Önceki oturumlarda Özellik 3-6 (Güvenlik, Dashboard/UX, API, İçerik İlişkileri) tamamlandı.
+
+## Validation
+- `vendor/bin/phpunit` → OK (126 tests, 408 assertions).
+- `composer validate` → "./composer.json is valid".
+- `composer dump-autoload -o` → 2590 sınıf; `php -l` 6 değişen dosya temiz.
+- `php -r "require 'vendor/autoload.php'; echo \Config\Version::current();"` → `1.0.0`.
+- `php spark list | grep webcron` → `webcron:token` kayıtlı.
+- `tests/feature/DashboardTest.php` → 3 test / 11 assertion (layout footer sürüm doğrulaması dahil).
+- `tests/feature/CronTest.php` → 8 test / 30 assertion yeşil.
+
+## Open items / next action
+1. Uçtan uca canlı regresyon (seed + admin panel + frontend + v2 özellikleri) bir kez daha.
+2. **Faz 4 — Müşteri Sistemi**: Faz 4-1 site şablonu + dağıtım standardı, Faz 4-2 sahiplik modeli (çok siteli örnek desen, v2 F ile bağlantılı).
+3. isteğe bağlı: `git tag v1.0.0` + push (ilk GH release; yalnızca kullanıcı isterse).
+
+## Access notes
+- Do not store secrets here. DB: writable/db/cms.sqlite3 (dev), writable/db/test.sqlite3 (tests).
+- Admin varvalan: admin@kayacms.local / admin123 (seed.php).
