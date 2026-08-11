@@ -136,6 +136,10 @@ class ContactController extends BaseController
         $data['currentLocale'] = current_locale();
         $data['activeLocales'] = explode(',', $this->settingModel->getSetting('site_active_locales', 'tr'));
 
+if (! is_file(APPPATH . "Views/themes/{$theme}/{$view}.php")) {
+    $theme = 'default';
+}
+
         return view("themes/{$theme}/{$view}", $data);
     }
 }

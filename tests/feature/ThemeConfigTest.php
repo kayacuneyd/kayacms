@@ -160,6 +160,136 @@ class ThemeConfigTest extends CIUnitTestCase
         $this->assertSame('Powered by KayaCMS', $savedData['footer_text']);
     }
 
+    public function testRepeaterSchemaHasSubFields(): void
+    {
+        $config = new ThemeConfig();
+        $schema = $config->schema('landing');
+
+        $fields = [];
+        foreach ($schema as $field) {
+            $fields[$field['key']] = $field;
+        }
+
+        $this->assertArrayHasKey('stats', $fields);
+        $this->assertSame('repeater', $fields['stats']['type']);
+        $this->assertSame(['value', 'label'], array_column($fields['stats']['fields'], 'name'));
+    }
+
+    public function testResolveRepeaterDefaultsToArray(): void
+    {
+        $themeModel = new ThemeModel();
+        $themeId = (int) $themeModel->insert([
+            'name' => 'Landing',
+            'slug' => 'landing',
+            'is_active' => 1,
+        ]);
+
+        $resolved = (new ThemeConfig())->resolve(['id' => $themeId, 'slug' => 'landing', 'config' => '{}']);
+
+        $this->assertIsArray($resolved['stats']);
+        $this->assertSame([], $resolved['stats']);
+    }
+
+    public function testSavePersistsRepeaterRows(): void
+    {
+        $themeModel = new ThemeModel();
+        $themeId = (int) $themeModel->insert([
+            'name' => 'Landing',
+            'slug' => 'landing',
+            'is_active' => 1,
+        ]);
+
+        $config = new ThemeConfig();
+        $saved = $config->save($themeId, [
+            'stats' => [
+                ['value' => '10k+', 'label' => 'Downloads'],
+                ['value' => '120', 'label' => 'Contributors'],
+                ['value' => '', 'label' => ''],
+            ],
+        ]);
+
+        $this->assertTrue($saved);
+
+        $theme = $themeModel->find($themeId);
+        $savedData = json_decode($theme['config'], true);
+
+        $this->assertCount(2, $savedData['stats']);
+        $this->assertSame('10k+', $savedData['stats'][0]['value']);
+        $this->assertSame('Downloads', $savedData['stats'][0]['label']);
+        $this->assertSame('120', $savedData['stats'][1]['value']);
+
+        $resolved = (new ThemeConfig())->resolve($theme);
+        $this->assertSame('10k+', $resolved['stats'][0]['value']);
+    }
+
+    public function testSaveClearsRepeaterWhenEmptyRows(): void
+    {
+        $themeModel = new ThemeModel();
+        $themeId = (int) $themeModel->insert([
+            'name' => 'Landing',
+            'slug' => 'landing',
+            'is_active' => 1,
+        ]);
+
+        $config = new ThemeConfig();
+        $config->save($themeId, [
+            'stats' => [['value' => 'A', 'label' => 'B']],
+        ]);
+
+        $saved = $config->save($themeId, [
+            'stats' => [],
+        ]);
+
+        $this->assertTrue($saved);
+
+        $theme = $themeModel->find($themeId);
+        $savedData = json_decode($theme['config'], true);
+
+        $this->assertSame([], $savedData['stats']);
+    }
+
+    public function testAdminConfigPageRendersRepeaterField(): void
+    {
+        $this->login();
+
+        $themeModel = new ThemeModel();
+        $themeId = (int) $themeModel->insert([
+            'name' => 'Landing',
+            'slug' => 'landing',
+            'is_active' => 1,
+        ]);
+
+        $result = $this->get("/admin/themes/config/{$themeId}");
+        $result->assertOK();
+        $result->assertSee('Stats (repeater)');
+        $result->assertSee('data-repeater');
+        $result->assertSee('+ Add Row');
+    }
+
+    public function testFrontendRendersRepeaterStats(): void
+    {
+        $this->login();
+
+        $themeModel = new ThemeModel();
+        $themeId = (int) $themeModel->insert([
+            'name' => 'Landing',
+            'slug' => 'landing',
+            'is_active' => 1,
+        ]);
+        $this->post("/admin/themes/config/{$themeId}", [
+            'config' => [
+                'stats' => [
+                    ['value' => '5.000+', 'label' => 'Publishers'],
+                ],
+            ],
+        ]);
+
+        $result = $this->get('/');
+        $result->assertOK();
+        $result->assertSee('5.000+');
+        $result->assertSee('Publishers');
+    }
+
     public function testFrontendExposesThemeConfig(): void
     {
         $this->login();

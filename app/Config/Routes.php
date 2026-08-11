@@ -47,6 +47,13 @@ $routes->post('admin/cache/clear-page', 'Admin\\CacheAdminController::clearPage'
 $routes->post('admin/cache/clear-query', 'Admin\\CacheAdminController::clearQuery', ['filter' => 'sessionAuth']);
 $routes->post('admin/cache/clear-all', 'Admin\\CacheAdminController::clearAll', ['filter' => 'sessionAuth']);
 
+// Contact — registered before the single-segment catch-all below so that the
+// standalone /contact page is served by the Contact module, not Home::virtualPage.
+$routes->get('contact', '\Contact\Controllers\ContactController::index/contact');
+$routes->post('contact/submit', '\Contact\Controllers\ContactController::submit/contact');
+$routes->get('contact/(:segment)', '\Contact\Controllers\ContactController::index/$1');
+$routes->post('contact/(:segment)/submit', '\Contact\Controllers\ContactController::submit/$1');
+
 // Virtual pages — any remaining single-segment URL is checked against the
 // virtual_pages table before a 404 is emitted. Because specific routes above
 // (content, category, page, admin, api, feed…) are registered first, this

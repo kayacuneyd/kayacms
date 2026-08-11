@@ -183,4 +183,28 @@ class LandingThemeTest extends CIUnitTestCase
         $result->assertOK();
         $result->assertDontSee('Hidden Post');
     }
+
+    public function testLandingThemeRendersContactPage(): void
+    {
+        $db = \Config\Database::connect();
+        $db->table('contact_forms')->where('1=1')->delete();
+        $db->table('contact_forms')->insert([
+            'name' => 'İletişim',
+            'slug' => 'contact',
+            'fields' => json_encode([
+                ['name' => 'name', 'label' => 'Name', 'type' => 'text', 'required' => true],
+                ['name' => 'email', 'label' => 'Email', 'type' => 'email', 'required' => true],
+                ['name' => 'message', 'label' => 'Message', 'type' => 'textarea', 'required' => true],
+            ]),
+            'settings' => '{}',
+            'is_active' => 1,
+        ]);
+
+        $this->activate($this->landingTheme);
+
+        $result = $this->get('/contact');
+        $result->assertOK();
+        $result->assertSee('İletişim');
+        $result->assertSee('contact/submit');
+    }
 }

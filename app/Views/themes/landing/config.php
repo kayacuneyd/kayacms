@@ -19,6 +19,12 @@ return [
     ['key' => 'features_intro', 'label' => 'Features Section Intro', 'type' => 'textarea', 'default' => 'One line per feature, formatted as: Icon|Title|Description'],
     ['key' => 'features', 'label' => 'Features (Icon|Title|Description per line)', 'type' => 'textarea', 'default' => "🚀|Fast by default|Pages render in milliseconds with built-in caching.\n🔒|Secure from day one|Role-based access, JWT auth and GDPR tooling.\n🧩|Modular core|Content, media, menus, taxonomy and themes out of the box.\n🌍|Built multilingual|Locale-aware routing, translations and hreflang support.\n📦|Your data, your stack|SQLite out of the box, portable and easy to deploy.\n🎨|Themable|Swap landing, blog or custom themes with one click."],
 
+    // Stats (repeater)
+    ['key' => 'stats', 'label' => 'Stats (repeater)', 'type' => 'repeater', 'default' => [], 'fields' => [
+        ['name' => 'value', 'label' => 'Value', 'type' => 'text', 'default' => ''],
+        ['name' => 'label', 'label' => 'Label', 'type' => 'text', 'default' => ''],
+    ]],
+
     // CTA
     ['key' => 'cta_title', 'label' => 'CTA Title', 'type' => 'text', 'default' => 'Ready when you are.'],
     ['key' => 'cta_text', 'label' => 'CTA Text', 'type' => 'textarea', 'default' => 'Install, configure and start publishing in minutes.'],

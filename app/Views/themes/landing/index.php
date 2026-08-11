@@ -14,6 +14,7 @@ $ctaTitle         = $cfg['cta_title'] ?? '';
 $ctaText          = $cfg['cta_text'] ?? '';
 $ctaButton        = $cfg['cta_button_text'] ?? '';
 $ctaUrl           = $cfg['cta_button_url'] ?? '/admin';
+$stats            = is_array($cfg['stats'] ?? null) ? $cfg['stats'] : [];
 
 $features = [];
 foreach (preg_split('/\r?\n/', $featuresRaw) as $line) {
@@ -50,6 +51,21 @@ foreach (preg_split('/\r?\n/', $featuresRaw) as $line) {
         <?php endif; ?>
     </div>
 </section>
+
+<?php if (! empty($stats)): ?>
+<section class="block" id="stats" style="padding:36px 0;">
+    <div class="wrap">
+        <div class="grid">
+            <?php foreach ($stats as $stat): ?>
+                <div class="card" style="text-align:center;padding:22px 18px;">
+                    <div style="font-size:2.2rem;font-weight:800;color:var(--brand);margin-bottom:6px;"><?= esc($stat['value'] ?? '') ?></div>
+                    <div style="color:var(--muted);font-size:.95rem;"><?= esc($stat['label'] ?? '') ?></div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <?php if (! empty($features)): ?>
 <section class="block" id="features">
