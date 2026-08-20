@@ -13,6 +13,8 @@ class UserEntity extends Entity
         'role_id'       => null,
         'role_name'     => null,
         'status'        => 'active',
+        'avatar_path'   => null,
+        'avatar_updated_at' => null,
         'created_at'    => null,
         'updated_at'    => null,
         'deleted_at'    => null,

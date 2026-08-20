@@ -18,6 +18,8 @@ class UserModel extends BaseModel
         'password_hash',
         'role_id',
         'status',
+        'avatar_path',
+        'avatar_updated_at',
         'totp_secret',
     ];
 
