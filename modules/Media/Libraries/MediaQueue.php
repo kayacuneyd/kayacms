@@ -115,6 +115,7 @@ class MediaQueue
 
         return match ($type) {
             'thumbnail' => $this->makeThumbnail($mediaId),
+            'derivatives' => $this->makeDerivatives($mediaId),
             'resize'    => $this->resize($mediaId, $payload),
             default     => throw new \RuntimeException("Unknown job type: {$type}"),
         };
@@ -242,5 +243,62 @@ class MediaQueue
         $this->enqueue('thumbnail', $mediaId);
 
         return ['width' => $width, 'height' => $height];
+    }
+
+    protected function makeDerivatives(int $mediaId): array
+    {
+        $item = $this->mediaModel->find($mediaId);
+
+        if (! $item || ! MediaHelper::isImage($item['mime_type'] ?? '')) {
+            throw new \RuntimeException('Image not found or not an image.');
+        }
+
+        $relative = ltrim($item['file_path'] ?? $item['path'] ?? '', '/');
+        $source = FCPATH . $relative;
+        if (! is_file($source)) {
+            throw new \RuntimeException('Source image file does not exist.');
+        }
+
+        if (! \function_exists('imagecreatetruecolor')) {
+            $derivatives = [
+                'card' => $relative,
+                'hero' => $relative,
+                'og' => $relative,
+            ];
+            $this->mediaModel->update($mediaId, [
+                'derivatives' => json_encode($derivatives, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            ]);
+
+            return $derivatives + ['note' => 'GD extension is not available; original image paths were reused.'];
+        }
+
+        $pathInfo = pathinfo($source);
+        $relativeDir = trim(dirname($relative), '.\\/');
+        $base = $pathInfo['filename'];
+        $ext = $pathInfo['extension'] ?? 'jpg';
+        $targets = [
+            'card' => [640, 420],
+            'hero' => [1400, 900],
+            'og' => [1200, 630],
+        ];
+        $derivatives = json_decode((string) ($item['derivatives'] ?? ''), true) ?: [];
+
+        foreach ($targets as $variant => [$width, $height]) {
+            $filename = "{$base}-{$variant}.{$ext}";
+            $dest = $pathInfo['dirname'] . DIRECTORY_SEPARATOR . $filename;
+            if (! is_file($dest) && ! ImageProcessor::resize($source, $dest, $width, $height)) {
+                throw new \RuntimeException("Failed to create {$variant} derivative.");
+            }
+            $derivatives[$variant] = ($relativeDir !== '' ? $relativeDir . '/' : '') . $filename;
+        }
+
+        [$width, $height] = MediaHelper::getDimensions($source);
+        $this->mediaModel->update($mediaId, [
+            'width' => $width,
+            'height' => $height,
+            'derivatives' => json_encode($derivatives, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        ]);
+
+        return $derivatives;
     }
 }

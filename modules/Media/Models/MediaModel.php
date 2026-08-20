@@ -22,7 +22,14 @@ class MediaModel extends BaseModel
         'folder_id',
         'width',
         'height',
+        'caption',
+        'credit',
+        'source_url',
+        'derivatives',
         'uploaded_by',
+        'storage_provider',
+        'storage_key',
+        'public_url',
     ];
 
     protected $useTimestamps = true;
