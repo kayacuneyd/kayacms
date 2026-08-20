@@ -1,0 +1,63 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build release zip
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, json, sqlite3, gd, curl, intl
+          coverage: none
+
+      - name: Install production dependencies
+        run: composer install --no-dev --optimize-autoloader --no-progress --prefer-dist
+
+      - name: Prepare release package
+        id: package
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          PKG="kayacms-${VERSION}"
+          mkdir -p "/tmp/${PKG}"
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='tests' \
+            --exclude='writable/db/*.sqlite3' \
+            --exclude='writable/db/*.db' \
+            --exclude='writable/cache/*' \
+            --exclude='writable/logs/*' \
+            --exclude='writable/session/*' \
+            --exclude='writable/debugbar/*' \
+            --exclude='.env' \
+            --exclude='node_modules' \
+            ./ "/tmp/${PKG}/"
+          # Re-add the placeholder files rsync's --exclude patterns just dropped
+          # along with the runtime content, so the writable/* dirs still exist.
+          for d in cache debugbar logs session; do
+            cp "writable/${d}/index.html" "/tmp/${PKG}/writable/${d}/index.html"
+          done
+          cd /tmp && zip -rq "${PKG}.zip" "${PKG}"
+          echo "zip_path=/tmp/${PKG}.zip" >> "$GITHUB_OUTPUT"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.zip_path }}
+          generate_release_notes: true
+          name: KayaCMS v${{ steps.package.outputs.version }}
