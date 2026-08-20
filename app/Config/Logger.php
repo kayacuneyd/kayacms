@@ -3,6 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\BaseConfig;
+use App\Libraries\DatabaseLogHandler;
 use CodeIgniter\Log\Handlers\FileHandler;
 use CodeIgniter\Log\Handlers\HandlerInterface;
 
@@ -119,6 +120,23 @@ class Logger extends BaseConfig
              * Specify a different destination here, if desired.
              */
             'path' => '',
+        ],
+
+        /*
+         * --------------------------------------------------------------------
+         * Database Handler
+         * --------------------------------------------------------------------
+         * Mirrors error/critical/warning level logs into the `error_logs`
+         * table so they're visible from the admin panel.
+         */
+        DatabaseLogHandler::class => [
+            'handles' => [
+                'critical',
+                'alert',
+                'emergency',
+                'error',
+                'warning',
+            ],
         ],
 
         /*

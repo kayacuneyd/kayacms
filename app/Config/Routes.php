@@ -16,6 +16,7 @@ $routes->get('content/(:segment)', 'Home::show/$1');
 $routes->get('category/(:segment)', 'Home::category/$1');
 $routes->get('tag/(:segment)', 'Home::tag/$1');
 $routes->get('page/(:segment)', 'Home::page/$1');
+$routes->post('analytics/collect', 'AnalyticsController::collect');
 
 // Localized routes with locale prefix
 $routes->get("($locales)", 'Home::index');
@@ -46,6 +47,17 @@ $routes->get('admin/hooks', 'Admin\\HooksAdminController::index', ['filter' => '
 $routes->post('admin/cache/clear-page', 'Admin\\CacheAdminController::clearPage', ['filter' => 'sessionAuth']);
 $routes->post('admin/cache/clear-query', 'Admin\\CacheAdminController::clearQuery', ['filter' => 'sessionAuth']);
 $routes->post('admin/cache/clear-all', 'Admin\\CacheAdminController::clearAll', ['filter' => 'sessionAuth']);
+$routes->get('admin/error-logs', 'Admin\\ErrorLogController::index', ['filter' => 'sessionAuth']);
+$routes->post('admin/error-logs/resolve/(:num)', 'Admin\\ErrorLogController::resolve/$1', ['filter' => 'sessionAuth']);
+$routes->post('admin/error-logs/unresolve/(:num)', 'Admin\\ErrorLogController::unresolve/$1', ['filter' => 'sessionAuth']);
+$routes->post('admin/error-logs/delete/(:num)', 'Admin\\ErrorLogController::delete/$1', ['filter' => 'sessionAuth']);
+$routes->post('admin/error-logs/clear-resolved', 'Admin\\ErrorLogController::clearResolved', ['filter' => 'sessionAuth']);
+$routes->get('admin/system-health', 'Admin\\SystemHealthController::index', ['filter' => 'sessionAuth']);
+$routes->get('admin/seo-audit', 'Admin\\SeoAuditController::index', ['filter' => 'sessionAuth']);
+
+// Client-side error reporting beacon (error-logger.js) — unauthenticated,
+// deliberately tolerant of payload shape (sendBeacon sends a Blob).
+$routes->post('log/js-error', 'ErrorLogController::collect');
 
 // Contact — registered before the single-segment catch-all below so that the
 // standalone /contact page is served by the Contact module, not Home::virtualPage.
@@ -53,6 +65,18 @@ $routes->get('contact', '\Contact\Controllers\ContactController::index/contact')
 $routes->post('contact/submit', '\Contact\Controllers\ContactController::submit/contact');
 $routes->get('contact/(:segment)', '\Contact\Controllers\ContactController::index/$1');
 $routes->post('contact/(:segment)/submit', '\Contact\Controllers\ContactController::submit/$1');
+
+// Member accounts (magic-link passwordless sign-in + bookmarks) — registered
+// before the virtual-page catch-all for the same reason as Contact above.
+$routes->get('member', 'MemberAuthController::form');
+$routes->get('member/profile', 'MemberAuthController::profile');
+$routes->post('member/profile', 'MemberAuthController::updateProfile');
+$routes->get('member/bookmarks', 'MemberAuthController::bookmarks');
+$routes->post('member/magic-link', 'MemberAuthController::requestLink');
+$routes->post('member/avatar', 'MemberAuthController::avatar');
+$routes->post('member/bookmarks/toggle', 'MemberBookmarkController::toggle');
+$routes->get('member/login/(:segment)', 'MemberAuthController::consume/$1');
+$routes->get('member/logout', 'MemberAuthController::logout');
 
 // Virtual pages — any remaining single-segment URL is checked against the
 // virtual_pages table before a 404 is emitted. Because specific routes above
