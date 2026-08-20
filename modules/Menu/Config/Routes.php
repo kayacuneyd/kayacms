@@ -26,4 +26,5 @@ $routes->group('admin/menus', ['namespace' => 'Menu\Controllers\Admin'], static 
     $routes->post('items/store/(:num)', 'MenuAdminController::storeItem/$1', ['filter' => 'sessionAuth']);
     $routes->post('items/update/(:num)', 'MenuAdminController::updateItem/$1', ['filter' => 'sessionAuth']);
     $routes->post('items/delete/(:num)', 'MenuAdminController::deleteItem/$1', ['filter' => 'sessionAuth']);
+    $routes->post('items/reorder/(:num)', 'MenuAdminController::reorderItems/$1', ['filter' => 'sessionAuth']);
 });

@@ -49,6 +49,7 @@ class MenuAdminController extends BaseAdminController
         $data = [
             'name'     => $this->request->getPost('name'),
             'location' => $this->request->getPost('location'),
+            'locale'   => $this->request->getPost('locale') ?: current_locale(),
         ];
 
         if (! $this->menuModel->insert($data)) {
@@ -97,6 +98,7 @@ class MenuAdminController extends BaseAdminController
         $data = [
             'name'     => $this->request->getPost('name'),
             'location' => $this->request->getPost('location'),
+            'locale'   => $this->request->getPost('locale') ?: current_locale(),
         ];
 
         if (! $this->menuModel->update($id, $data)) {
@@ -141,6 +143,7 @@ class MenuAdminController extends BaseAdminController
             'target'    => $this->request->getPost('target') ?: '_self',
             'parent_id' => $this->request->getPost('parent_id') ?: null,
             'sort_order'=> (int) $this->request->getPost('sort_order'),
+            'locale'    => $this->request->getPost('locale') ?: ($menu['locale'] ?? current_locale()),
         ];
 
         if (! $this->menuItemModel->insert($data)) {
@@ -165,6 +168,7 @@ class MenuAdminController extends BaseAdminController
             'target'    => $this->request->getPost('target') ?: '_self',
             'parent_id' => $this->request->getPost('parent_id') ?: null,
             'sort_order'=> (int) $this->request->getPost('sort_order'),
+            'locale'    => $this->request->getPost('locale') ?: ($item['locale'] ?? current_locale()),
         ];
 
         $this->menuItemModel->update($id, $data);
@@ -185,5 +189,47 @@ class MenuAdminController extends BaseAdminController
         $this->menuItemModel->delete($id);
 
         return redirect()->to('/admin/menus/edit/' . $menuId)->with('success', 'Menu item deleted.');
+    }
+
+    public function reorderItems(int $menuId)
+    {
+        if ($redirect = $this->requirePermission('menus.edit')) return $redirect;
+
+        $menu = $this->menuModel->find($menuId);
+        if (! $menu) {
+            return redirect()->to('/admin/menus')->with('error', 'Menu not found.');
+        }
+
+        $order = json_decode((string) $this->request->getPost('order'), true);
+        if (! is_array($order)) {
+            return redirect()->to('/admin/menus/edit/' . $menuId)->with('error', 'Invalid menu order payload.');
+        }
+
+        $this->applyItemOrder($order, $menuId, null);
+
+        return redirect()->to('/admin/menus/edit/' . $menuId)->with('success', 'Menu order saved.');
+    }
+
+    private function applyItemOrder(array $items, int $menuId, ?int $parentId): void
+    {
+        foreach ($items as $index => $item) {
+            $id = (int) ($item['id'] ?? 0);
+            if ($id <= 0) {
+                continue;
+            }
+
+            $this->menuItemModel
+                ->where('menu_id', $menuId)
+                ->where('id', $id)
+                ->set([
+                    'parent_id' => $parentId,
+                    'sort_order' => ($index + 1) * 10,
+                ])
+                ->update();
+
+            if (! empty($item['children']) && is_array($item['children'])) {
+                $this->applyItemOrder($item['children'], $menuId, $id);
+            }
+        }
     }
 }
