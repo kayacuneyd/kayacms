@@ -20,6 +20,15 @@ class CommentController extends BaseController
 
     public function store()
     {
+        if (trim((string) $this->request->getPost('website')) !== '') {
+            return redirect()->back()->with('success', 'Your comment has been submitted and is awaiting moderation.');
+        }
+
+        $lastComment = (int) (session('comment_submit_at') ?? 0);
+        if ($lastComment > 0 && time() - $lastComment < 45) {
+            return redirect()->back()->with('error', 'Please wait a moment before posting another comment.');
+        }
+
         $rules = [
             'content_id'   => 'required|integer',
             'author_name'  => 'required|string|max_length[255]',
@@ -39,6 +48,8 @@ class CommentController extends BaseController
         if (! $content) {
             return redirect()->back()->with('error', 'Content not found.');
         }
+
+        session()->set('comment_submit_at', time());
 
         $this->commentModel->insert([
             'content_id'   => $contentId,

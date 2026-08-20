@@ -1,4 +1,6 @@
 <?= $this->include('themes/minimal/partials/header'); ?>
+<script>document.body.dataset.contentSlug = <?= json_encode($item->slug ?? '') ?>;</script>
+<script src="<?= base_url('assets/js/analytics.js') ?>" defer></script>
 <div class="container">
     <article class="post">
         <h1><?= esc($item->title) ?></h1>
@@ -47,6 +49,7 @@
         <form class="comment-form" action="/comments/store" method="post" style="margin-top:16px;">
             <?= csrf_field() ?>
             <input type="hidden" name="content_id" value="<?= $item->id ?>">
+            <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
             <label>Name</label>
             <input type="text" name="author_name" value="<?= old('author_name') ?>" required>
             <label>Email</label>

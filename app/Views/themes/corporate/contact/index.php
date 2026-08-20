@@ -13,8 +13,15 @@
         <div class="flash-error"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
 
+    <?php
+        $contactStartedAt = time();
+        $contactToken = hash_hmac('sha256', (string) $contactStartedAt, (string) config('Encryption')->key);
+    ?>
     <form method="post" action="/contact/<?= esc($form['slug']) ?>/submit" class="form-card" style="max-width:760px;margin:0 auto;">
         <?= csrf_field() ?>
+        <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
+        <input type="hidden" name="form_started_at" value="<?= esc((string) $contactStartedAt) ?>">
+        <input type="hidden" name="form_token" value="<?= esc($contactToken) ?>">
 
         <?php foreach ($form['fields'] as $field):
             $name  = $field['name'];

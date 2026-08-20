@@ -45,6 +45,10 @@ class ContactController extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Contact form not found.');
         }
 
+        if (! $this->passesSpamProtection()) {
+            return redirect()->back()->withInput()->with('error', 'Your message could not be sent right now. Please try again shortly.');
+        }
+
         $rules = [];
         $fieldData = [];
         foreach ($form['fields'] as $field) {
@@ -82,6 +86,34 @@ class ContactController extends BaseController
         $this->sendNotification($form, $fieldData);
 
         return redirect()->to('/contact/' . $form['slug'])->with('success', 'Thank you! Your message has been sent.');
+    }
+
+    private function passesSpamProtection(): bool
+    {
+        if (trim((string) $this->request->getPost('website')) !== '') {
+            return false;
+        }
+
+        $startedAt = (int) $this->request->getPost('form_started_at');
+        $token = (string) $this->request->getPost('form_token');
+        $expected = hash_hmac('sha256', (string) $startedAt, (string) config('Encryption')->key);
+        $age = time() - $startedAt;
+
+        if ($startedAt <= 0 || ! hash_equals($expected, $token) || $age < 3 || $age > 7200) {
+            return false;
+        }
+
+        $cache = cache();
+        $ip = preg_replace('/[^a-zA-Z0-9:_\.-]/', '_', $this->request->getIPAddress());
+        $key = 'contact_rate_' . md5($ip);
+        $count = (int) ($cache->get($key) ?? 0);
+        if ($count >= 5) {
+            return false;
+        }
+
+        $cache->save($key, $count + 1, 3600);
+
+        return true;
     }
 
     private function sendNotification(array $form, array $fieldData): void
@@ -122,13 +154,28 @@ class ContactController extends BaseController
         $themeModel = new \Theme\Models\ThemeModel();
         $activeTheme = $themeModel->getActive();
         $theme = $activeTheme['slug'] ?? 'default';
+        $settings = array_merge(
+            $this->settingModel->getByGroup('general'),
+            $this->settingModel->getByGroup('seo'),
+            $this->settingModel->getByGroup('email')
+        );
 
         $data['theme'] = $theme;
+        $data['settings'] = $settings;
+        $data['site'] = $data['site'] ?? $settings;
+        $data['theme_config'] = (new \Theme\Libraries\ThemeConfig())->resolve($activeTheme);
+        $data['locale'] = current_locale();
+        $data['defaultLocale'] = $this->settingModel->getSetting('site_default_locale', 'tr');
+        $data['canonical_url'] = current_url();
+        $data['title'] = $data['pageTitle'] ?? ($settings['site_name'] ?? 'KayaCMS');
+        $data['page_title'] = $data['pageTitle'] ?? ($settings['site_name'] ?? 'KayaCMS');
+        $data['meta_description'] = $data['metaDescription'] ?? ($settings['site_description'] ?? '');
+        $data['structured_data'] = [];
         $data['menus'] = [];
 
         $menuModel = new \Menu\Models\MenuModel();
         $menuItemModel = new \Menu\Models\MenuItemModel();
-        $menus = $menuModel->findAll();
+        $menus = $menuModel->where('locale', current_locale())->findAll();
         foreach ($menus as $menu) {
             $data['menus'][$menu['location']] = $menuItemModel->getMenuTree((int) $menu['id']);
         }
@@ -136,9 +183,9 @@ class ContactController extends BaseController
         $data['currentLocale'] = current_locale();
         $data['activeLocales'] = explode(',', $this->settingModel->getSetting('site_active_locales', 'tr'));
 
-if (! is_file(APPPATH . "Views/themes/{$theme}/{$view}.php")) {
-    $theme = 'default';
-}
+        if (! is_file(APPPATH . "Views/themes/{$theme}/{$view}.php")) {
+            $theme = 'default';
+        }
 
         return view("themes/{$theme}/{$view}", $data);
     }

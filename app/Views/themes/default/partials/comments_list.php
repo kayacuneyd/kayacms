@@ -17,6 +17,7 @@ function renderComments(array $comments, int $level = 0): void
                     <?= csrf_field() ?>
                     <input type="hidden" name="content_id" value="<?= $comment['content_id'] ?>">
                     <input type="hidden" name="parent_id" value="<?= $comment['id'] ?>">
+                    <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
                     <div style="margin-bottom:8px;">
                         <input type="text" name="author_name" placeholder="Name" required style="width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;">
                     </div>

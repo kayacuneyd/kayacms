@@ -1,4 +1,6 @@
 <?= $this->include('themes/corporate/partials/header'); ?>
+<script>document.body.dataset.contentSlug = <?= json_encode($item->slug ?? '') ?>;</script>
+<script src="<?= base_url('assets/js/analytics.js') ?>" defer></script>
 <div class="wrap" style="padding-top:12rem;padding-bottom:6rem;">
     <article class="article">
         <?php if (! empty($item->featured_image)): ?>
@@ -49,6 +51,7 @@
         <form action="/comments/store" method="post" class="form-card">
             <?= csrf_field() ?>
             <input type="hidden" name="content_id" value="<?= $item->id ?>">
+            <input type="text" name="website" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px" aria-hidden="true">
 
             <div>
                 <label>Ad</label>
