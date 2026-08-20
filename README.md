@@ -1,5 +1,9 @@
 # KayaCMS
 
+[![CI](https://github.com/kayacuneyd/kayacms/actions/workflows/ci.yml/badge.svg)](https://github.com/kayacuneyd/kayacms/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/kayacuneyd/kayacms)](https://github.com/kayacuneyd/kayacms/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A modular, headless(-ish) CMS built on **CodeIgniter 4**. Ships with a theme
 engine, RBAC, media processing queue, REST API, webhooks, i18n-ready content,
 GDPR export and a full admin panel — deployable to shared hosting or a VPS.
@@ -24,22 +28,57 @@ GDPR export and a full admin panel — deployable to shared hosting or a VPS.
 
 ## Requirements
 
-- PHP >= 8.2 with extensions: `mbstring`, `json`, and either `pdo_sqlite` or
-  `pdo_mysql`; `gd` (thumbnails), `curl` (webhooks).
+- PHP >= 8.2 with extensions: `mbstring`, `json`, and either `sqlite3` or
+  `mysqli`; `gd` (thumbnails), `curl` (webhooks).
 - Composer.
 
 ## Installation
 
+### Option A — Composer (recommended)
+
 ```bash
-composer install
-cp .env.example .env          # set CI_ENVIRONMENT, app.baseURL, app.jwtSecret
-php spark migrate --all
-php seed.php                  # creates default settings, users, themes, menus
-php spark serve               # or point your web server at public/
+composer create-project kayacms/kayacms myapp
+cd myapp
+php spark app:install
 ```
 
-Access the admin panel at `/admin` (default seed admin: `admin@kayacms.local`
-/ `admin123` — **change it immediately**).
+`composer create-project` copies `.env` from `.env.example` and generates an
+encryption key automatically. `app:install` then checks your database
+settings, runs migrations, seeds default data (roles, settings, themes, a
+contact form), and walks you through creating the first admin account
+(pass `--no-interaction` for a non-interactive run in scripts/CI, with
+`--admin-email`, `--admin-username`, `--admin-password` options).
+
+```bash
+php spark serve   # or point your web server at public/
+```
+
+### Option B — Download a release
+
+No Composer needed. Grab the latest packaged zip from
+[Releases](https://github.com/kayacuneyd/kayacms/releases/latest), unzip it,
+then:
+
+```bash
+cd kayacms-x.y.z
+cp .env.example .env
+php spark app:install
+php spark serve
+```
+
+### Option C — Manual (clone + composer install)
+
+```bash
+git clone https://github.com/kayacuneyd/kayacms.git
+cd kayacms
+composer install
+cp .env.example .env          # set CI_ENVIRONMENT, app.baseURL, jwt.secret
+php spark app:install         # or run migrate --all / db:seed by hand
+php spark serve
+```
+
+In every case, access the admin panel at `/admin` with the account you
+created during `app:install`.
 
 ## Deploying
 
@@ -73,11 +112,26 @@ for content/user/comment lifecycle: see Admin → Hooks & Events.
 ## Testing
 
 ```bash
-vendor/bin/phpunit
+composer test   # or: vendor/bin/phpunit
+composer lint
 ```
 
 Feature and unit tests cover the admin panel, API, theme engine, media queue,
-web-cron, GDPR, custom fields, and more (126 tests).
+web-cron, GDPR, custom fields, and more (147 tests). Every push and pull
+request runs the same suite via [GitHub Actions](.github/workflows/ci.yml).
+
+## Releasing
+
+```bash
+composer run release -- patch   # or: minor / major
+git push && git push --tags
+```
+
+Bumps `app/Config/Version.php`, drafts a `CHANGELOG.md` entry from the
+commits since the last tag, and creates a `chore(release): vX.Y.Z` commit +
+git tag (after a confirmation prompt). Pushing the tag triggers
+[`release.yml`](.github/workflows/release.yml), which builds a `--no-dev`
+zip and publishes it to [GitHub Releases](https://github.com/kayacuneyd/kayacms/releases).
 
 ## License
 
