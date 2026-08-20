@@ -14,7 +14,7 @@ class Version extends BaseConfig
 {
     public const MAJOR = 1;
 
-    public const MINOR = 0;
+    public const MINOR = 1;
 
     public const PATCH = 0;
 

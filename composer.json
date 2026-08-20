@@ -55,6 +55,8 @@
     },
     "scripts": {
         "test": "phpunit",
-        "lint": "php -l app/ modules/"
+        "lint": "php -l app/ modules/",
+        "release": "php scripts/release.php",
+        "post-create-project-cmd": "php scripts/post-create.php"
     }
 }
