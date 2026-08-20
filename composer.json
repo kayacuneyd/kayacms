@@ -35,7 +35,9 @@
             "Setting\\": "modules/Setting/",
             "Theme\\": "modules/Theme/",
             "Contact\\": "modules/Contact/",
-            "Maintenance\\": "modules/Maintenance/"
+            "Maintenance\\": "modules/Maintenance/",
+            "Newsletter\\": "modules/Newsletter/",
+            "Rss\\": "modules/Rss/"
         },
         "exclude-from-classmap": [
             "**/Database/Migrations/**"
