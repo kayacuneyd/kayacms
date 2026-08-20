@@ -201,4 +201,41 @@ class ImageProcessor
         $transparent = imagecolorallocatealpha($dst, 255, 255, 255, 127);
         imagefill($dst, 0, 0, $transparent);
     }
+
+    /**
+     * Crop a square, center-cropped WebP variant (typically used for avatars).
+     */
+    public static function squareWebp(string $source, string $destination, int $size = 160, int $quality = 82): bool
+    {
+        if (! function_exists('imagewebp')) {
+            return false;
+        }
+
+        [$width, $height] = getimagesize($source);
+        $image = self::load($source);
+
+        if (! $image) {
+            return false;
+        }
+
+        $crop = min($width, $height);
+        $srcX = (int) (($width - $crop) / 2);
+        $srcY = (int) (($height - $crop) / 2);
+        $avatar = imagecreatetruecolor($size, $size);
+
+        self::preserveAlpha($image, $avatar);
+        imagecopyresampled($avatar, $image, 0, 0, $srcX, $srcY, $size, $size, $crop, $crop);
+
+        $dir = dirname($destination);
+        if (! is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        $saved = imagewebp($avatar, $destination, $quality);
+
+        imagedestroy($image);
+        imagedestroy($avatar);
+
+        return $saved !== false;
+    }
 }
