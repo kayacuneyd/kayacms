@@ -4,6 +4,7 @@ namespace Maintenance\Libraries;
 
 use Maintenance\Libraries\BackupManager;
 use Media\Libraries\MediaQueue;
+use Rss\Libraries\RssFetcher;
 use Setting\Models\SettingModel;
 use User\Libraries\SecurityLog;
 
@@ -78,6 +79,10 @@ class WebCron
                         'filename' => $backup['filename'],
                         'size'     => is_file($backup['path']) ? filesize($backup['path']) : 0,
                     ];
+                    break;
+
+                case 'rss:fetch':
+                    $results['rss:fetch'] = (new RssFetcher())->fetchAll();
                     break;
 
                 default:
