@@ -27,6 +27,11 @@ class ContentModel extends BaseModel
         'published_at',
         'is_featured',
         'custom_data',
+        'source_system',
+        'source_id',
+        'source_url',
+        'canonical_url',
+        'seo_data',
     ];
 
     protected $useTimestamps = true;
@@ -36,7 +41,7 @@ class ContentModel extends BaseModel
         'slug'  => 'required|alpha_dash|is_unique[content.slug,id,{id}]',
         'body'  => 'required',
         'status' => 'in_list[draft,published,archived]',
-        'content_type' => 'in_list[article,page,product]',
+        'content_type' => 'in_list[article,page,product,podcast]',
     ];
 
     protected $validationMessages = [
