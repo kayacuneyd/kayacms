@@ -17,7 +17,7 @@ class AuthController extends BaseAdminController
     public function login()
     {
         if (session()->has('user_id')) {
-            return redirect()->to('/admin/dashboard');
+            return redirect()->to(site_url('admin/dashboard'));
         }
 
         return view('admin/login');
@@ -34,7 +34,7 @@ class AuthController extends BaseAdminController
             \User\Libraries\ActivityLog::auth('logout', $userId, $username, 'User logged out from admin panel');
         }
 
-        return redirect()->to('/admin/login')->with('success', 'Logged out successfully.');
+        return redirect()->to(site_url('admin/login'))->with('success', 'Logged out successfully.');
     }
 
     public function attempt()
@@ -56,7 +56,7 @@ class AuthController extends BaseAdminController
         if ($throttle->isBlocked($email)) {
             \User\Libraries\SecurityLog::warning('login_locked', "Too many failed attempts for {$email}", null, ['email' => $email]);
 
-            return redirect()->to('/admin/login')->withInput()
+            return redirect()->to(site_url('admin/login'))->withInput()
                 ->with('error', 'Too many failed login attempts. Please try again after the lockout period.');
         }
 
@@ -66,14 +66,14 @@ class AuthController extends BaseAdminController
             $throttle->record($email, false);
             \User\Libraries\SecurityLog::warning('login_failed', "Failed login attempt for {$email}");
 
-            return redirect()->to('/admin/login')->withInput()->with('error', 'Invalid credentials');
+            return redirect()->to(site_url('admin/login'))->withInput()->with('error', 'Invalid credentials');
         }
 
         if ($user->status !== 'active') {
             $throttle->record($email, false);
             \User\Libraries\SecurityLog::warning('login_disabled', 'Login attempted on disabled account', $user->id);
 
-            return redirect()->to('/admin/login')->withInput()->with('error', 'Account is not active');
+            return redirect()->to(site_url('admin/login'))->withInput()->with('error', 'Account is not active');
         }
 
         // TOTP two-factor challenge
@@ -81,7 +81,7 @@ class AuthController extends BaseAdminController
         if ($user->totp_secret && ! session()->get('totp_verified')) {
             $totp->startChallenge($user->id);
 
-            return redirect()->to('/admin/auth/totp')->with('success', 'Enter your verification code');
+            return redirect()->to(site_url('admin/auth/totp'), 303)->with('success', 'Enter your verification code');
         }
 
         session()->set([
@@ -95,7 +95,7 @@ class AuthController extends BaseAdminController
         \User\Libraries\SecurityLog::info('login_success', 'Successful login from admin panel', $user->id);
         \User\Libraries\ActivityLog::auth('login', $user->id, $user->username, 'User logged in via admin panel');
 
-        return redirect()->to('/admin/dashboard')->with('success', 'Login successful');
+        return redirect()->to(site_url('admin/dashboard'), 303)->with('success', 'Login successful');
     }
 
     /**
@@ -104,13 +104,13 @@ class AuthController extends BaseAdminController
     public function magicLinkForm()
     {
         if (session()->has('user_id')) {
-            return redirect()->to('/admin/dashboard');
+            return redirect()->to(site_url('admin/dashboard'));
         }
 
         $magic = new \User\Libraries\MagicLink();
 
         if (! $magic->isEnabled()) {
-            return redirect()->to('/admin/login')->with('error', 'Passwordless sign-in is disabled.');
+            return redirect()->to(site_url('admin/login'))->with('error', 'Passwordless sign-in is disabled.');
         }
 
         return view('admin/magic_link');
@@ -133,7 +133,7 @@ class AuthController extends BaseAdminController
         $magic = new \User\Libraries\MagicLink();
 
         if (! $magic->isEnabled()) {
-            return redirect()->to('/admin/login')->with('error', 'Passwordless sign-in is disabled.');
+            return redirect()->to(site_url('admin/login'))->with('error', 'Passwordless sign-in is disabled.');
         }
 
         $throttle = new \User\Libraries\LoginThrottle();
@@ -164,7 +164,7 @@ class AuthController extends BaseAdminController
             \User\Libraries\SecurityLog::info('magic_link_sent', "Magic link sent for {$email}", (int) $user->id, ['email' => $email]);
         }
 
-        return redirect()->to('/admin/magic-link')
+        return redirect()->to(site_url('admin/magic-link'))
             ->with('success', 'If that email is registered, a sign-in link has been sent. Check your inbox.');
     }
 
@@ -177,11 +177,11 @@ class AuthController extends BaseAdminController
         $user  = $magic->consume($token);
 
         if ($user === null) {
-            return redirect()->to('/admin/login')->with('error', 'This sign-in link is invalid or has expired.');
+            return redirect()->to(site_url('admin/login'))->with('error', 'This sign-in link is invalid or has expired.');
         }
 
         if ($user->status !== 'active') {
-            return redirect()->to('/admin/login')->with('error', 'Account is not active');
+            return redirect()->to(site_url('admin/login'))->with('error', 'Account is not active');
         }
 
         // TOTP two-factor challenge
@@ -189,7 +189,7 @@ class AuthController extends BaseAdminController
         if ($user->totp_secret && ! session()->get('totp_verified')) {
             $totp->startChallenge((int) $user->id);
 
-            return redirect()->to('/admin/auth/totp')->with('success', 'Enter your verification code');
+            return redirect()->to(site_url('admin/auth/totp'), 303)->with('success', 'Enter your verification code');
         }
 
         session()->set([
@@ -202,7 +202,7 @@ class AuthController extends BaseAdminController
         \User\Libraries\SecurityLog::info('magic_link_login', 'Logged in via magic link', (int) $user->id);
         \User\Libraries\ActivityLog::auth('login', (int) $user->id, $user->username, 'User logged in via passwordless link');
 
-        return redirect()->to('/admin/dashboard')->with('success', 'Login successful');
+        return redirect()->to(site_url('admin/dashboard'), 303)->with('success', 'Login successful');
     }
 
     /**
@@ -211,13 +211,13 @@ class AuthController extends BaseAdminController
     public function totpForm()
     {
         if (session()->get('totp_verified')) {
-            return redirect()->to('/admin/dashboard');
+            return redirect()->to(site_url('admin/dashboard'));
         }
 
         $userId = session()->get('totp_pending_user');
 
         if (! $userId) {
-            return redirect()->to('/admin/login');
+            return redirect()->to(site_url('admin/login'));
         }
 
         return view('admin/totp');
@@ -229,7 +229,7 @@ class AuthController extends BaseAdminController
         $username = session()->get('username');
 
         if (! $userId) {
-            return redirect()->to('/admin/login');
+            return redirect()->to(site_url('admin/login'));
         }
 
         $rules = ['code' => 'required|numeric|exact_length[6]'];
@@ -241,7 +241,7 @@ class AuthController extends BaseAdminController
         $user = $this->userModel->find($userId);
 
         if (! $user || ! $user->totp_secret) {
-            return redirect()->to('/admin/login')->with('error', 'Sign-in session expired. Please login again.');
+            return redirect()->to(site_url('admin/login'))->with('error', 'Sign-in session expired. Please login again.');
         }
 
         $two = new \User\Libraries\TwoFactorAuth();
@@ -256,7 +256,7 @@ class AuthController extends BaseAdminController
 
         \User\Libraries\SecurityLog::info('totp_success', 'Two-factor authentication verified', $user->id);
 
-        return redirect()->to('/admin/dashboard')->with('success', 'Login successful');
+        return redirect()->to(site_url('admin/dashboard'), 303)->with('success', 'Login successful');
     }
 }
 
