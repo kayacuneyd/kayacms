@@ -2,6 +2,7 @@
 namespace Media\Models;
 
 use App\Core\BaseModel;
+use Media\Helpers\MediaHelper;
 
 class MediaModel extends BaseModel
 {

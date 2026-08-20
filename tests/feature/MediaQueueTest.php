@@ -42,9 +42,26 @@ class MediaQueueTest extends CIUnitTestCase
         ]);
     }
 
+    /**
+     * Generates a small real JPEG at $path so tests don't depend on an
+     * external fixture file.
+     */
+    private function generateTestImage(string $path, int $width = 800, int $height = 600): void
+    {
+        $dir = dirname($path);
+        if (! is_dir($dir)) {
+            mkdir($dir, 0775, true);
+        }
+
+        $image = imagecreatetruecolor($width, $height);
+        $bg = imagecolorallocate($image, 100, 150, 200);
+        imagefill($image, 0, 0, $bg);
+        imagejpeg($image, $path, 90);
+        imagedestroy($image);
+    }
+
     private function seedImageMedia(): array
     {
-        $source = '/tmp/opencode/test-image.jpg';
         $dir = FCPATH . 'assets/uploads/test/queue/';
 
         if (! is_dir($dir)) {
@@ -52,7 +69,7 @@ class MediaQueueTest extends CIUnitTestCase
         }
 
         $file = $dir . 'queue-test-image.jpg';
-        copy($source, $file);
+        $this->generateTestImage($file);
 
         $relative = str_replace(FCPATH, '', $file);
 
@@ -175,7 +192,7 @@ class MediaQueueTest extends CIUnitTestCase
         }
 
         $uploadFile = $dir . 'upload.jpg';
-        copy('/tmp/opencode/test-image.jpg', $uploadFile);
+        $this->generateTestImage($uploadFile);
 
         $this->uploadFile = new FakeQTUploadedFile($uploadFile);
 
