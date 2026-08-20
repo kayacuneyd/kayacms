@@ -6,6 +6,7 @@ use App\Controllers\Admin\BaseAdminController;
 use CodeIgniter\HTTP\ResponseInterface;
 use Media\Helpers\MediaHelper;
 use Media\Libraries\ImageProcessor;
+use Media\Libraries\MediaStorage;
 use Media\Models\MediaFolderModel;
 use Media\Models\MediaModel;
 
@@ -81,13 +82,26 @@ class MediaAdminController extends BaseAdminController
         if ($redirect = $this->requirePermission('media.upload')) return $redirect;
 
         $files = $this->request->getFileMultiple('files');
+        $wantsJson = $this->request->isAJAX() || str_contains((string) $this->request->getHeaderLine('Accept'), 'application/json');
 
         if (empty($files)) {
+            if ($wantsJson) {
+                return $this->response->setStatusCode(422)->setJSON([
+                    'success' => false,
+                    'uploaded' => 0,
+                    'items' => [],
+                    'errors' => ['Please select at least one file.'],
+                    'message' => 'Please select at least one file.',
+                    'csrf' => ['name' => csrf_token(), 'hash' => csrf_hash()],
+                ]);
+            }
             return redirect()->back()->withInput()->with('error', 'Please select at least one file.');
         }
 
         $uploaded = 0;
         $errors   = [];
+        $uploadedItems = [];
+        $storage  = new MediaStorage();
 
         foreach ($files as $file) {
             if (! $file || ! $file->isValid()) {
@@ -102,21 +116,34 @@ class MediaAdminController extends BaseAdminController
                 continue;
             }
 
-            $uploadPath  = MediaHelper::getUploadPath();
             $filename    = MediaHelper::generateFilename($file->getClientName());
             $relativeDir = 'assets/uploads/' . date('Y/m') . '/';
-            $fullDir     = FCPATH . $relativeDir;
+            $storageKey  = trim((string) (new \Setting\Models\SettingModel())->getSetting('r2_path_prefix', 'uploads'), '/');
+            $storageKey  = ($storageKey !== '' ? $storageKey . '/' : '') . date('Y/m') . '/' . $filename;
+            $mainPath    = $file->getTempName();
+            $stored      = ['provider' => 'local', 'key' => $relativeDir . $filename, 'public_url' => ''];
 
-            if (! is_dir($fullDir) && ! mkdir($fullDir, 0775, true)) {
-                $errors[] = 'Failed to create upload directory.';
-                continue;
-            }
+            if ($storage->provider() === 'local') {
+                $fullDir = FCPATH . $relativeDir;
 
-            $mainPath = $fullDir . $filename;
+                if (! is_dir($fullDir) && ! mkdir($fullDir, 0775, true)) {
+                    $errors[] = 'Failed to create upload directory.';
+                    continue;
+                }
 
-            if (! $file->move($fullDir, $filename)) {
-                $errors[] = "Failed to move '{$file->getClientName()}'.";
-                continue;
+                if (! $file->move($fullDir, $filename)) {
+                    $errors[] = "Failed to move '{$file->getClientName()}'.";
+                    continue;
+                }
+
+                $mainPath = $fullDir . $filename;
+            } else {
+                try {
+                    $stored = $storage->upload($mainPath, $storageKey, $file->getMimeType());
+                } catch (\Throwable $e) {
+                    $errors[] = "R2 upload failed for '{$file->getClientName()}': " . $e->getMessage();
+                    continue;
+                }
             }
 
             $thumbnailPath = null;
@@ -124,7 +151,7 @@ class MediaAdminController extends BaseAdminController
             $height        = null;
             $isImage       = MediaHelper::isImage($file->getMimeType());
 
-            if ($isImage) {
+            if ($isImage && $stored['provider'] === 'local') {
                 [$width, $height] = MediaHelper::getDimensions($mainPath);
             }
 
@@ -141,25 +168,50 @@ class MediaAdminController extends BaseAdminController
                 'width'          => $width,
                 'height'         => $height,
                 'uploaded_by'    => session()->get('user_id'),
+                'storage_provider' => $stored['provider'],
+                'storage_key'      => $stored['key'],
+                'public_url'       => $stored['public_url'],
             ];
 
             if (! $this->mediaModel->insert($data)) {
-                @unlink($mainPath);
-                if ($thumbnailPath) {
-                    @unlink(FCPATH . $thumbnailPath);
+                if ($stored['provider'] === 'local') {
+                    @unlink($mainPath);
+                    if ($thumbnailPath) {
+                        @unlink(FCPATH . $thumbnailPath);
+                    }
                 }
                 $errors[] = implode(', ', $this->mediaModel->errors());
                 continue;
             }
 
             $id = $this->mediaModel->getInsertID();
+            $row = $this->mediaModel->find((int) $id);
+            if ($row) {
+                $uploadedItems[] = $this->mediaModel->decorate([is_array($row) ? $row : (array) $row])[0];
+            }
 
-            if ($isImage) {
-                (new \Media\Libraries\MediaQueue())->enqueue('thumbnail', (int) $id);
+            if ($isImage && $stored['provider'] === 'local') {
+                $queue = new \Media\Libraries\MediaQueue();
+                $queue->enqueue('thumbnail', (int) $id);
+                $queue->enqueue('derivatives', (int) $id);
             }
 
             $this->logActivity('created', 'media', (int) $id, "Uploaded media: {$data['filename']}");
             $uploaded++;
+        }
+
+        if ($wantsJson) {
+            return $this->response->setStatusCode($uploaded > 0 ? 200 : 422)->setJSON([
+                'success' => $uploaded > 0,
+                'uploaded' => $uploaded,
+                'items' => $uploadedItems,
+                'errors' => $errors,
+                'message' => $uploaded > 0 ? "{$uploaded} file(s) uploaded successfully." : implode(' ', $errors),
+                'csrf' => [
+                    'name' => csrf_token(),
+                    'hash' => csrf_hash(),
+                ],
+            ]);
         }
 
         if ($uploaded > 0) {
@@ -344,11 +396,15 @@ class MediaAdminController extends BaseAdminController
         $data['title']     = 'Media Picker';
         $data['items']     = $this->mediaModel->decorate($items);
         $data['folders']   = $this->folderModel->tree();
+        $data['currentFolder'] = $folder;
         $data['search']    = $search;
         $data['page']      = $page;
         $data['totalPages']  = (int) ceil($total / $perPage);
 
-        return $this->render('admin/media/picker', $data);
+        $data['isModal'] = $this->request->getGet('modal') === '1';
+        $data['canUpload'] = $this->can('media.upload');
+
+        return view('admin/media/picker', $data);
     }
 
     public function createFolder()
@@ -430,7 +486,13 @@ class MediaAdminController extends BaseAdminController
 
         $item = is_array($item) ? $item : (array) $item;
 
-        if (! empty($item['file_path'])) {
+        if (($item['storage_provider'] ?? 'local') === 'r2') {
+            try {
+                (new MediaStorage())->delete('r2', $item['storage_key'] ?? null);
+            } catch (\Throwable $e) {
+                return redirect()->to('/admin/media')->with('error', 'R2 delete failed: ' . $e->getMessage());
+            }
+        } elseif (! empty($item['file_path'])) {
             @unlink(FCPATH . $item['file_path']);
         }
         if (! empty($item['thumbnail_path'])) {

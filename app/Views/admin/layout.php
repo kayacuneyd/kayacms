@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= esc($title ?? 'KayaCMS - Admin') ?></title>
     <link rel="stylesheet" href="/assets/css/ckcss.css">
+    <link rel="stylesheet" href="<?= base_url('assets/admin/css/admin.css') ?>">
     <style>
         .toast-container {
             position: fixed;
@@ -61,6 +62,12 @@
                 <a href="/admin/contact-forms" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'contact_forms' ? 'ck-text-white' : '' ?>">
                     Contact Forms
                 </a>
+                <a href="/admin/newsletter" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'newsletter' ? 'ck-text-white' : '' ?>">
+                    Newsletter
+                </a>
+                <a href="/admin/rss" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'rss' ? 'ck-text-white' : '' ?>">
+                    RSS
+                </a>
                 <a href="/admin/media" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'media' ? 'ck-text-white' : '' ?>">
                     Media
                 </a>
@@ -90,6 +97,15 @@
                 </a>
                 <a href="/admin/security" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'security' ? 'ck-text-white' : '' ?>">
                     Security
+                </a>
+                <a href="/admin/error-logs" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'error_logs' ? 'ck-text-white' : '' ?>">
+                    Error Log
+                </a>
+                <a href="/admin/system-health" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'system_health' ? 'ck-text-white' : '' ?>">
+                    System Health
+                </a>
+                <a href="/admin/seo-audit" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'seo_audit' ? 'ck-text-white' : '' ?>">
+                    SEO Audit
                 </a>
                 <a href="/admin/gdpr" class="ck-block ck-px-6 ck-py-3 ck-text-gray-400 hover:ck-text-white <?= ($active ?? '') === 'gdpr' ? 'ck-text-white' : '' ?>">
                     GDPR Export
@@ -143,7 +159,12 @@
     </div>
 
     <div id="toast-container" class="toast-container"></div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="<?= base_url('assets/js/media-picker.js') ?>" defer></script>
+    <script src="<?= base_url('assets/js/error-logger.js') ?>" defer></script>
     <script>
+        if (window.lucide && typeof window.lucide.createIcons === 'function') window.lucide.createIcons();
+
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
