@@ -42,6 +42,16 @@ class Mailer
                 'CRLF'        => "\r\n",
             ];
             $email->initialize($emailConfig);
+        } elseif ($this->setting->getSetting('mail_protocol', '') === 'sendmail') {
+            $email->initialize([
+                'protocol' => 'sendmail',
+                'mailPath' => $this->setting->getSetting('sendmail_path', '/usr/sbin/sendmail'),
+                'mailType' => 'html',
+                'wordWrap' => true,
+                'charset'  => 'UTF-8',
+                'newline'  => "\n",
+                'CRLF'     => "\n",
+            ]);
         }
 
         return $email;
@@ -52,15 +62,24 @@ class Mailer
      */
     public function defaultFrom(): string
     {
-        return $this->setting->getSetting('smtp_user') ?: 'noreply@kayacms.local';
+        return $this->setting->getSetting('smtp_from_email')
+            ?: ($this->setting->getSetting('smtp_user') ?: 'noreply@kayacms.local');
     }
 
     /**
-     * Whether SMTP is configured.
+     * Whether mail delivery is configured.
      */
     public function isConfigured(): bool
     {
-        return $this->setting->getSetting('smtp_host', '') !== '';
+        if ($this->setting->getSetting('mail_protocol', '') === 'sendmail') {
+            return true;
+        }
+
+        $host = (string) $this->setting->getSetting('smtp_host', '');
+        $user = (string) $this->setting->getSetting('smtp_user', '');
+        $pass = (string) $this->setting->getSetting('smtp_pass', '');
+
+        return $host !== '' && ($user === '' || $pass !== '');
     }
 
     /**
@@ -77,7 +96,7 @@ class Mailer
         $email = $this->instance();
 
         $fromEmail = $from['email'] ?? $this->defaultFrom();
-        $fromName  = $from['name'] ?? ($this->setting->getSetting('site_name', 'KayaCMS'));
+        $fromName  = $from['name'] ?? ($this->setting->getSetting('smtp_from_name') ?: $this->setting->getSetting('site_name', 'KayaCMS'));
 
         try {
             $email->setFrom($fromEmail, $fromName);
